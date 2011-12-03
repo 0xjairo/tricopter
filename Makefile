@@ -29,7 +29,7 @@ PRODUCT_ID := 0003
 SRCS=	main.cpp \
 		utils.cpp \
 		esc-control.cpp \
-		# ppm-decode.cpp 
+		ppm-decode.cpp 
 
 INCLUDES=${SRCS:.cpp=.h}  
 OBJS=$(addprefix $(APP_OBJ_PATH)/, $(SRCS:.cpp=.o))

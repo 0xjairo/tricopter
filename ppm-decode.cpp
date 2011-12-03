@@ -1,3 +1,6 @@
+// Original code from http://pastebin.com/NQtbVCFh
+// Posted on the leaflabs.com forum by Dweller:
+// http://forums.leaflabs.com/topic.php?id=1170
 ///**********************************************************************
 // Various Maple tests.. including timer capture to memory via dma =)
 // */

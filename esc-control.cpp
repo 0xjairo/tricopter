@@ -1,11 +1,7 @@
 #include "wirish.h"
+#include "utils.h"
 #include "esc-control.h"
 
-// ASCII escape character
-#define ESC       ((uint8)27)
-
-// Default USART baud rate
-#define BAUD     9600
 
 // Servo constants
 #define SERVO_MIN 3430
@@ -45,7 +41,7 @@ void ppm_decode(void){
                 time_start = micros();
 
             }else{
-#ifdef VERBOSE
+#ifdef USB_VERBOSE
                 SerialUSB.print(i);
                 SerialUSB.print(":");
                 SerialUSB.print(time_elapsed);
@@ -65,12 +61,12 @@ void ppm_decode(void){
                     }
                     channels[i++] = time_elapsed;
                 }else{
-#ifdef VERBOSE
+#ifdef USB_VERBOSE
                     SerialUSB.println("");
 #endif
                     i=0;
                 }
-#ifdef VERBOSE
+#ifdef USB_VERBOSE
                 SerialUSB.print("\t");
 #endif
 
@@ -138,34 +134,5 @@ void cmd_servo_sweep(void) {
     }
     init_all_timers(1);
     enable_usarts();
-}
-
-void cmd_board_info(void) {     // TODO print more information
-    SerialUSB.println("Board information");
-    SerialUSB.println("=================");
-
-    SerialUSB.print("* Clock speed (MHz): ");
-    SerialUSB.println(CYCLES_PER_MICROSECOND);
-
-    SerialUSB.print("* BOARD_LED_PIN: ");
-    SerialUSB.println(BOARD_LED_PIN);
-
-    SerialUSB.print("* BOARD_BUTTON_PIN: ");
-    SerialUSB.println(BOARD_BUTTON_PIN);
-
-    SerialUSB.print("* GPIO information (BOARD_NR_GPIO_PINS = ");
-    SerialUSB.print(BOARD_NR_GPIO_PINS);
-    SerialUSB.println("):");
-    print_board_array("ADC pins", boardADCPins, BOARD_NR_ADC_PINS);
-    print_board_array("PWM pins", boardPWMPins, BOARD_NR_PWM_PINS);
-    print_board_array("Used pins", boardUsedPins, BOARD_NR_USED_PINS);
-}
-
-// -- Helper functions --------------------------------------------------------
-
-static uint16 init_all_timers_prescale = 0;
-
-static void set_prescale(timer_dev *dev) {
-    timer_set_prescaler(dev, init_all_timers_prescale);
 }
 

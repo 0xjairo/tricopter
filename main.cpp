@@ -1,5 +1,4 @@
-// Comment out to disable USB printouts
-#define USB_VERBOSE
+
 
 // Include files
 #include "wirish.h"
@@ -87,6 +86,7 @@ int main(void) {
                 SerialUSB.print("Unexpected byte: 0x");
                 SerialUSB.print((int)input, HEX);
                 SerialUSB.println(", press h for help.");
+                break;
             }
 
             SerialUSB.print("> ");

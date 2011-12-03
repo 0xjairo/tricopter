@@ -62,3 +62,26 @@ boolean isConnected(){
   return (SerialUSB.isConnected() && (SerialUSB.getDTR() || SerialUSB.getRTS()));
 }
 
+void cmd_board_info(void) {     // TODO print more information
+    SerialUSB.println("Board information");
+    SerialUSB.println("=================");
+
+    SerialUSB.print("* Clock speed (MHz): ");
+    SerialUSB.println(CYCLES_PER_MICROSECOND);
+
+    SerialUSB.print("* BOARD_LED_PIN: ");
+    SerialUSB.println(BOARD_LED_PIN);
+
+    SerialUSB.print("* BOARD_BUTTON_PIN: ");
+    SerialUSB.println(BOARD_BUTTON_PIN);
+
+    SerialUSB.print("* GPIO information (BOARD_NR_GPIO_PINS = ");
+    SerialUSB.print(BOARD_NR_GPIO_PINS);
+    SerialUSB.println("):");
+    print_board_array("ADC pins", boardADCPins, BOARD_NR_ADC_PINS);
+    print_board_array("PWM pins", boardPWMPins, BOARD_NR_PWM_PINS);
+    print_board_array("Used pins", boardUsedPins, BOARD_NR_USED_PINS);
+}
+
+
+
