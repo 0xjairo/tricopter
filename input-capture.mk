@@ -2,6 +2,9 @@
 
 .DEFAULT_GOAL := sketch
 
+##
+## Useful paths, constants, etc.
+##
 
 ifeq ($(LIB_MAPLE_HOME),)
 SRCROOT := .
@@ -9,7 +12,6 @@ else
 SRCROOT := $(LIB_MAPLE_HOME)
 endif
 BUILD_PATH = build
-APP_OBJ_PATH=${BUILD_PATH}/app
 LIBMAPLE_PATH := $(SRCROOT)/libmaple
 WIRISH_PATH := $(SRCROOT)/wirish
 SUPPORT_PATH := $(SRCROOT)/support
@@ -22,18 +24,6 @@ MAKEDIR := $(SUPPORT_PATH)/make
 VENDOR_ID  := 1EAF
 PRODUCT_ID := 0003
 
-
-##
-## Useful paths, constants, etc.
-##
-SRCS=	main.cpp \
-		utils.cpp \
-		esc-control.cpp \
-		# ppm-decode.cpp 
-
-INCLUDES=${SRCS:.cpp=.h}  
-OBJS=$(addprefix $(APP_OBJ_PATH)/, $(SRCS:.cpp=.o))
-
 ##
 ## Target-specific configuration.  This determines some compiler and
 ## linker options/flags.
@@ -41,7 +31,7 @@ OBJS=$(addprefix $(APP_OBJ_PATH)/, $(SRCS:.cpp=.o))
 
 # Try "make help" for more information on BOARD and MEMORY_TARGET;
 # these default to a Maple Flash build.
-BOARD ?= maple_mini
+BOARD ?= maple
 MEMORY_TARGET ?= flash
 
 # $(BOARD)- and $(MEMORY_TARGET)-specific configuration
@@ -95,10 +85,6 @@ LIBMAPLE_MODULES += $(SRCROOT)/libraries/FreeRTOS
 # Call each module's rules.mk:
 $(foreach m,$(LIBMAPLE_MODULES),$(eval $(call LIBMAPLE_MODULE_template,$(m))))
 
-# app obj folder
-BUILDDIRS+=${APP_OBJ_PATH}
-
-
 ##
 ## Targets
 ##
@@ -131,7 +117,7 @@ ifneq ($(PREV_BUILD_TYPE), $(MEMORY_TARGET))
 endif
 
 sketch: build-check MSG_INFO $(BUILD_PATH)/$(BOARD).bin
-	
+
 clean:
 	rm -rf build
 
