@@ -8,6 +8,7 @@
 #include "usb.h"
 #include "timer.h"
 #include "dma.h"
+#include "utils.h"
 //
 //
 ///**********************************************************************
@@ -123,16 +124,33 @@ HardwareTimer timer1 = HardwareTimer(1);
 // */
 
 //number of captures to do..
-#define TIMERS 512
+#define TIMERS 9
+#define TIMER_PRESCALE 22
+
+// TIMER_PRESCALE*(1/72 MHz) =
+#define TICK_PERIOD ( TIMER_PRESCALE*0.000138888889f )
+
 volatile int exit=0;            //set to 1 when dma complete.
 volatile uint16 data[TIMERS];   //place to put the data via dma
+uint16 delta=0;
 
 //dump routine to show content of captured data.
 void printData(){
-  SerialUSB.print("DATA: ");
+  float duty;
+  SerialUSB.println("DATA: ");
   for(int i=0; i<TIMERS; i++){
-    SerialUSB.print(data[i]);
-    SerialUSB.print(" ");
+
+	if(i>0) delta = data[i]-data[i-1];
+	else delta = data[i] - data[TIMERS-1];
+
+	duty=(delta)*TICK_PERIOD;
+
+	SerialUSB.print(delta);
+    SerialUSB.print(":(");
+    SerialUSB.print(duty);
+    SerialUSB.print(")");
+    if ((i+1)%9==0)	SerialUSB.println("\n");
+    else SerialUSB.println("\t");
   }
   SerialUSB.println();
 }
@@ -175,7 +193,7 @@ void ppm_decode_interrupt_dma()
       timer_dev *t = TIMER1;
 
       timer1.pause();
-      timer1.setPrescaleFactor(1);
+      timer1.setPrescaleFactor(TIMER_PRESCALE);
       timer1.setOverflow(65535);
       timer1.setCount(0);
       timer1.refresh();
@@ -199,10 +217,10 @@ void ppm_decode_interrupt_dma()
       //Capture/Compare 1 Selection
       //  set CC1S bits to 01 in the capture compare mode register.
       //  01 selects TI1 as the input to use. (page 336 stm32 reference)
-      //  (assuming here that TI1 is D6, according to maple master pin map)
+      //  (assuming here that TI1 is D27, according to maple master pin map)
       //CC1S bits are bits 0,1
-      bitSet(r.adv->CCMR1, 0);
       bitClear(r.adv->CCMR1, 1);
+      bitSet(r.adv->CCMR1, 0);
 
 
       //Input Capture 1 Filter.
@@ -217,15 +235,15 @@ void ppm_decode_interrupt_dma()
       bitSet(r.adv->CCMR1, 4);
 
       //sort out the input capture prescaler..
-      //00 no prescaler.. capture is done as soon as edge is detected
+      //00 no prescaler.. capture is done at every edge detected
       bitClear(r.adv->CCMR1, 3);
       bitClear(r.adv->CCMR1, 2);
 
       //select the edge for the transition on TI1 channel using CC1P in CCER
       //CC1P is bit 1 of CCER (page 339)
       // 0 = rising (non-inverted. capture is done on a rising edge of IC1)
-      // 1 = falling (inverted. capture is donw on a falling edge of IC1)
-      bitClear(r.adv->CCER,0);
+      // 1 = falling (inverted. capture is done on a falling edge of IC1)
+      bitClear(r.adv->CCER,1);
 
       //set the CC1E bit to enable capture from the counter.
       //CCE1 is bit 0 of CCER (page 339)
@@ -257,6 +275,9 @@ void ppm_decode_interrupt_dma()
       dma_enable(DMA1, DMA_CH2);                    //enable it..
 
       SerialUSB.println("Starting timer.. rising edge of D27 (hopefully)");
+
+      disable_usarts();
+
       //start the timer counting.
       timer1.resume();
       //the timer is now counting up, and any falling edges on D6
@@ -271,7 +292,7 @@ void ppm_decode_interrupt_dma()
       //SerialUSB.println("Timer triggered : ");
       //SerialUSB.println(r.adv->CCR1);
 
-      SerialUSB.println("Waiting for exit flag from dma...");
+      //SerialUSB.println("Waiting for exit flag from dma...");
       //busy wait on the exit flag
       //we could do real work here if wanted..
       while(!exit);
@@ -283,6 +304,8 @@ void ppm_decode_interrupt_dma()
       timer1.pause();
       dma_disable(DMA1, DMA_CH2);
       dma_detach_interrupt(DMA1, DMA_CH2);
+
+      enable_usarts();
 
       exit=0;
 }
