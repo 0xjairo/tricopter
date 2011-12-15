@@ -130,28 +130,39 @@ HardwareTimer timer1 = HardwareTimer(1);
 // TIMER_PRESCALE*(1/72 MHz) =
 #define TICK_PERIOD ( TIMER_PRESCALE*0.0000138888889f )
 
-volatile int exit=0;            //set to 1 when dma complete.
+volatile int dma_data_captured=0;            //set to 1 when dma complete.
 volatile uint16 data[TIMERS];   //place to put the data via dma
 uint16 delta=0;
+uint16 ppm_timeout=0;
+int do_print=1;
 
 //dump routine to show content of captured data.
 void printData(){
-  float duty;
-  for(int i=0; i<TIMERS; i++){
+	float duty;
+	for(int i=0; i<TIMERS; i++){
 
-	if(i>0) delta = data[i]-data[i-1];
-	else delta = data[i] - data[TIMERS-1];
+		if(ppm_timeout==1){
+			if(do_print==1)
+			{
+				SerialUSB.println("PPM timeout!");
+				do_print=0;
+			}
+			return;
+		}
 
-	duty=(delta)*TICK_PERIOD;
+		if(i>0) delta = data[i]-data[i-1];
+		else delta = data[i] - data[TIMERS-1];
 
-	SerialUSB.print(delta);
-    SerialUSB.print(":(");
-    SerialUSB.print(duty);
-    SerialUSB.print(")");
-    if ((i+1)%9==0)	SerialUSB.print("\r");
-    else SerialUSB.print("\t");
-  }
-  SerialUSB.println();
+		duty=(delta)*TICK_PERIOD;
+
+		SerialUSB.print(delta);
+		SerialUSB.print(":(");
+		SerialUSB.print(duty);
+		SerialUSB.print(")");
+		if ((i+1)%9==0)	SerialUSB.print("\r");
+		else SerialUSB.print("\t");
+	}
+	SerialUSB.println();
 }
 
 //invoked as configured by the DMA mode flags.
@@ -163,13 +174,14 @@ void dma_isr()
         //before the next one comes in.. (dma is fast.. m'kay)
 
 	timer1.setCount(0);  // clear counter
-
+	if(ppm_timeout) ppm_timeout=0;
+	if(!do_print) do_print=1;
 	switch(cause)
 	{
 		case DMA_TRANSFER_COMPLETE:
 			// Transfer completed
                         //SerialUSB.println("DMA Complete");
-                        exit=1;
+                        dma_data_captured=1;
 			break;
 		case DMA_TRANSFER_HALF_COMPLETE:
 			// Transfer is half complete
@@ -178,16 +190,28 @@ void dma_isr()
 		case DMA_TRANSFER_ERROR:
 			// An error occurred during transfer
                         SerialUSB.println("DMA Error");
-                        exit=1;
+                        dma_data_captured=1;
 			break;
 		default:
 			// Something went horribly wrong.
 			// Should never happen.
                         SerialUSB.println("DMA WTF");
-                        exit=1;
+                        dma_data_captured=1;
 			break;
 	}
 
+}
+
+void ppm_timeout_isr()
+{
+	// This failure mode indicates we lost comm with
+	// the transmitter
+
+	//TODO: re-initialize the timer and wait for ppm signal
+	//re-initializing should ensure that the ppm signal
+	// is captured on the sync pulse.
+	ppm_timeout=1;
+	dma_data_captured=0;
 }
 
 void init_timer_input_capture_dma()
@@ -199,6 +223,14 @@ void init_timer_input_capture_dma()
     timer1.setPrescaleFactor(TIMER_PRESCALE);
     timer1.setOverflow(65535);
     timer1.setCount(0);
+
+    // use channel 2 to detect when we stop receiving
+    // a ppm signal from the encoder.
+    timer1.setMode(TIMER_CH2, TIMER_OUTPUT_COMPARE);
+    timer1.setCompare(TIMER_CH2, 65535);
+    timer1.attachCompare2Interrupt(ppm_timeout_isr);
+
+
     timer1.refresh();
 
     timer_reg_map r = t->regs;
@@ -304,12 +336,12 @@ void ppm_decode_interrupt_dma()
 	//SerialUSB.println("Timer triggered : ");
 	//SerialUSB.println(r.adv->CCR1);
 
-	//SerialUSB.println("Waiting for exit flag from dma...");
-	//busy wait on the exit flag
+	//SerialUSB.println("Waiting for dma_data_captured flag from dma...");
+	//busy wait on the dma_data_captured flag
 	//we could do real work here if wanted..
-	while(!exit);
+	while(!dma_data_captured);
 
-	while(!SerialUSB.available())
+	while(!SerialUSB.available() && do_print==1)
 	{
 	  //dump the data
 	  printData();
@@ -321,7 +353,7 @@ void ppm_decode_interrupt_dma()
 
 	//      dma_disable(DMA1, DMA_CH2);
 	//      dma_detach_interrupt(DMA1, DMA_CH2);
-	exit=0;
+	dma_data_captured=0;
 
 }
 
