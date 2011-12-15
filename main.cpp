@@ -36,6 +36,9 @@ void setup() {
     SerialUSB.begin();
     while(!isConnected()); //wait till console attaches.
     SerialUSB.println("Hello!");
+
+    // init timer1 and dma
+    init_timer_input_capture_dma();
 }
 
 
