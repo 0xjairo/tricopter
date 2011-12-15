@@ -4,7 +4,7 @@
 #include "wirish.h"
 #include "utils.h"
 #include "esc-control.h"
-//#include "ppm-decode.h"
+#include "ppm-decode.h"
 
 
 // ASCII escape character
@@ -66,6 +66,13 @@ int main(void) {
                 break;
 
             case '?':
+            	SerialUSB.println("no help available");
+            	break;
+
+            case 'd':
+            	ppm_decode_interrupt_dma();
+            	break;
+
             case 'h':
                 cmd_print_help();
                 break;

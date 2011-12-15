@@ -18,9 +18,9 @@ const char* dummy_data = ("qwertyuiopasdfghjklzxcvbnmmmmmm,./1234567890-="
 
 
 void ppm_decode(void){
-    SerialUSB.println("Decoding DIY Drones PPM encoder on pin D15");
+    SerialUSB.println("Decoding DIY Drones PPM encoder on pin D27");
     
-    int pin = 15;    
+    int pin = 27;
     uint8 prev_state;
     int time_elapsed = 0;
     int time_start = 0;
