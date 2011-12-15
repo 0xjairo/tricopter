@@ -9,127 +9,17 @@
 #include "timer.h"
 #include "dma.h"
 #include "utils.h"
-//
-//
-///**********************************************************************
-// timer tests.. seeing if the timer clock really does run at 72mhz..
-// */
-//
-//volatile int overflowCount=0;
-//void countOverflows(){
-//  overflowCount++;
-//}
-//
-//int PRESCALE=128;
-//int WAIT=50;
-//int results[16];
-//int overflow[16];
-//void testHardwareTimer(HardwareTimer t){
-//  t.attachInterrupt(1,countOverflows);
-//  for(int i=0; i<16; i++){
-//    t.setCount(0);
-//    overflowCount=0;
-//    t.resume();
-//    delay(WAIT);
-//    t.pause();
-//    results[i]=t.getCount();
-//    overflow[i]=overflowCount;
-//  }
-//  t.detachInterrupt(1);
-//}
-//void printResults(){
-//  SerialUSB.print("Timing results: ");
-//  for(int i=0; i<16; i++){
-//    SerialUSB.print(results[i]);
-//    SerialUSB.print(" ");
-//  }
-//  SerialUSB.println();
-//  SerialUSB.print("Overflows: ");
-//  for(int i=0; i<16; i++){
-//    SerialUSB.print(overflow[i]);
-//    SerialUSB.print(" ");
-//  }
-//  SerialUSB.println();
-//  SerialUSB.print("Each count worth approx (ns): ");
-//  for(int i=0; i<16; i++){
-//    SerialUSB.print( waitToNanos(overflow[i], results[i]) );
-//    SerialUSB.print(" ");
-//  }
-//  SerialUSB.println();
-//}
-//double expectedTimePeriod(){
-//  //in nanos.. so 72mhz = 72000khz = 72000000hz  1/72000000hz = tick in seconds
-//  // 1/72000 = tick in ms, 1/72 = tick in us (1/72) * 1000 = tick in ns
-//  //tick in ns * prescale == time we're supposed to see
-//  return ((double)1.0 / ((double)72.0)) * (double)1000.0 * (double)PRESCALE;
-//}
-//double waitToNanos( int overflows, int count ){
-//  //wait is in millis, *1000 for micros, *1000 for nanos
-//  double time = (((double)WAIT * (double)1000.0 * (double)1000.0) ) ;
-//  time = time / ((double)count + ((double)65535*(double)overflows));
-//  return time;
-//}
-//
-//int readInt(char terminator){
-//  char current;
-//  int output=0;
-//  while(SerialUSB.available() && (current=SerialUSB.read())!=terminator){
-//    if(current>='0' && current<='9'){
-//      output=output*10;
-//      output+=(current-'0');
-//    }else{
-//      output=-1;
-//      break;
-//    }
-//  }
-//  return output;
-//}
-//
-//HardwareTimer timer2 = HardwareTimer(2);
-HardwareTimer timer1 = HardwareTimer(1);
-//void timingTest(){
-//      SerialUSB.println("Starting Timing test");
-//      SerialUSB.print(" Prescale: ");
-//      SerialUSB.println(PRESCALE);
-//      SerialUSB.print(" Wait Period (ms): ");
-//      SerialUSB.println(WAIT);
-//      SerialUSB.print(" Expected value for each tick :");
-//      SerialUSB.println(expectedTimePeriod());
-//      timer1.pause();
-//      timer2.pause();
-//
-//      timer2.setMode(TIMER_CH1, TIMER_OUTPUT_COMPARE);
-//      timer2.setPrescaleFactor(PRESCALE);
-//      timer2.setOverflow(65535);
-//      timer2.setCompare(1,65535);
-//      timer2.setCount(0);
-//      timer2.refresh();
-//
-//      timer1.setMode(TIMER_CH1, TIMER_OUTPUT_COMPARE);
-//      timer1.setPrescaleFactor(PRESCALE);
-//      timer1.setOverflow(65535);
-//      timer1.setCompare(1,65535);
-//      timer1.setCount(0);
-//      timer1.refresh();
-//
-//      testHardwareTimer(timer1);
-//      printResults();
-//
-//      testHardwareTimer(timer2);
-//      printResults();
-//}
-//
-///******************************************************************************
-// DMA from Timer Capture to array test..
-// */
 
-//number of captures to do..
+//number of captures to do by dma
 #define TIMERS 9
+
+// timer prescale
 #define TIMER_PRESCALE 26
 
 // TIMER_PRESCALE*(1/72 MHz) =
 #define TICK_PERIOD ( TIMER_PRESCALE*0.0000138888889f )
 
+HardwareTimer timer1 = HardwareTimer(1);
 volatile int dma_data_captured=0;            //set to 1 when dma complete.
 volatile uint16 data[TIMERS];   //place to put the data via dma
 uint16 delta=0;
