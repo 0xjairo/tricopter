@@ -1,6 +1,7 @@
 
 
 // Include files
+#include "main.h"
 #include "wirish.h"
 #include "utils.h"
 #include "esc-control.h"
@@ -16,7 +17,6 @@
 #define SERVO_MAX 6800
 #define PPM_CNTS_TO_DEG 0.09
 #define SERVO_ANGLE_TO_DUTY 37.44444 
-#define SERVO_PIN 16
 
 // Globals
 HardwareTimer timer4(4);
