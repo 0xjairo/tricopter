@@ -6,7 +6,7 @@
 
 // Servo constants
 #define SERVO_MIN 3430
-#define SERVO_MAX 6800
+#define SERVO_MAX 6855
 #define PPM_CNTS_TO_DEG 0.09
 #define SERVO_ANGLE_TO_DUTY 37.44444 
 
@@ -82,9 +82,6 @@ void ppm_decode(void){
 
 void set_servo_angle(float angle)
 {
-    //SERVO_MIN = 3430
-    //SERVO_MAX = 6800
-    //SERVO_CNTS_TO_DEG=0.0267
     int duty;
     
     disable_usarts();
@@ -94,45 +91,78 @@ void set_servo_angle(float angle)
     pwmWrite(ROTOR1_PIN, duty);
 }
 
+// rotor = 1,2,3
+// rate = 0.0 to 1.00 %
+void set_rotor_throttle(int rotor, float rate)
+{
+	int pin;
+
+	switch(rotor){
+	case 1:
+		pin = ROTOR1_PIN;
+		break;
+	case 2:
+		pin = ROTOR2_PIN;
+		break;
+	case 3:
+		pin = ROTOR3_PIN;
+		break;
+	default:
+		return;
+	}
+
+	if(rate < 0 || rate > 1) return;
+
+	// 1.00ms = 3430counts = 0% (0deg)
+	// 1.25ms = 4096counts =
+	// 1.50ms = 4915counts = 50% (90deg)
+	// 1.75ms = 5734counts =
+	// 2.00ms = 6800counts = 100% (180deg)
+	int duty = SERVO_MIN + (float)(SERVO_MAX-SERVO_MIN)*rate;
+
+#ifdef DEBUG
+	SerialUSB.print("Rotor:D");
+	SerialUSB.print(pin);
+	SerialUSB.print("\tRate:");
+	SerialUSB.print(rate);
+	SerialUSB.print("\tDuty:");
+	SerialUSB.println(duty);
+#endif
+
+	pwmWrite(pin, duty);
+
+}
+
 void cmd_servo_sweep(void) {
-    SerialUSB.println("Testing D16 PWM header with a servo sweep. "
+    SerialUSB.println("Testing D15 and D16 PWM header with a servo sweep. "
                       "Press any key to stop.");
     SerialUSB.println();
 
     disable_usarts();
-    init_all_timers(21);
 
-    for (uint32 i = 0; i < BOARD_NR_PWM_PINS; i++) {
-        if (boardUsesPin(i))
-            continue;
-        pinMode(boardPWMPins[i], PWM);
-        pwmWrite(boardPWMPins[i], 4000);
-    }
-
-    // 1.25ms = 4096counts = 0deg
-    // 1.50ms = 4915counts = 90deg
-    // 1.75ms = 5734counts = 180deg
-    //int rate = 4096;
-    int rate = 3430; // 1 ms
+    float rate1 = 0;
+    float rate2 = 0;
     while (!SerialUSB.available()) {
-        rate += 20;
-        if (rate > 6800)//5734) 6800 = 2ms
-            rate = 3430;//4096;
-        //for (uint32 i = 0; i < BOARD_NR_PWM_PINS; i++) {
-        //    if (boardUsesPin(i))
-        //        continue;
-        //    pwmWrite(boardPWMPins[i], rate);
-        //}
-        pwmWrite(16, rate);
+        rate1 += 0.0005;
+        rate2 += 0.001;
+        if (rate1 > 1.0)  rate1 = 0.0;
+        if (rate2 > 1.0)  rate2 = 0.0;
+
+        set_rotor_throttle(1, rate1);
+        set_rotor_throttle(2, rate2);
         delay(20);
     }
 
-    for (uint32 i = 0; i < BOARD_NR_PWM_PINS; i++) {
-        if (boardUsesPin(i))
-            continue;
-        pinMode(boardPWMPins[i], OUTPUT);
-    }
-    init_all_timers(1);
+    set_rotor_throttle(1, 0.0);
+    set_rotor_throttle(2, 0.0);
+
+
+//    for (uint32 i = 0; i < BOARD_NR_PWM_PINS; i++) {
+//        if (boardUsesPin(i))
+//            continue;
+//        pinMode(boardPWMPins[i], OUTPUT);
+//    }
+//    init_all_timers(1);
     enable_usarts();
 }
 

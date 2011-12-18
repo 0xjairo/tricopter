@@ -34,14 +34,14 @@ void setup() {
     pinMode(ROTOR2_PIN, PWM);
     pinMode(ROTOR3_PIN, PWM);
 
+    // ppm decode setup
+    // init timer1 and dma
+    init_timer_input_capture_dma();
+
     // initialize usb
     SerialUSB.begin();
     while(!isConnected()); //wait till console attaches.
     SerialUSB.println("Welcome user!");
-
-    // ppm decode setup
-    // init timer1 and dma
-    init_timer_input_capture_dma();
 }
 
 
