@@ -30,13 +30,16 @@ void setup() {
     // Setup timer4 for PWM
     timer4.setMode(TIMER_CH1, TIMER_PWM);
     timer4.setPrescaleFactor(21);
-    pinMode(SERVO_PIN, PWM);
+    pinMode(ROTOR1_PIN, PWM);
+    pinMode(ROTOR2_PIN, PWM);
+    pinMode(ROTOR3_PIN, PWM);
 
-    //ppm decode setup
+    // initialize usb
     SerialUSB.begin();
     while(!isConnected()); //wait till console attaches.
-    SerialUSB.println("Hello!");
+    SerialUSB.println("Welcome user!");
 
+    // ppm decode setup
     // init timer1 and dma
     init_timer_input_capture_dma();
 }

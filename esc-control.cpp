@@ -91,7 +91,7 @@ void set_servo_angle(float angle)
 
     duty = SERVO_MIN + (int)(angle * SERVO_ANGLE_TO_DUTY);
     if(duty > SERVO_MAX) duty = SERVO_MAX;
-    pwmWrite(SERVO_PIN, duty);
+    pwmWrite(ROTOR1_PIN, duty);
 }
 
 void cmd_servo_sweep(void) {
