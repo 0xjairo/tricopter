@@ -4,6 +4,7 @@
 ///**********************************************************************
 // Various Maple tests.. including timer capture to memory via dma =)
 // */
+#include "main.h"
 #include "wirish.h"
 #include "usb.h"
 #include "timer.h"
@@ -127,7 +128,7 @@ void init_timer_input_capture_dma()
 
     //using timer1, channel1, maps to pin d27 (maple mini) //d6 (maple?)
     //according to maple master pin map.
-    pinMode(27,INPUT_PULLUP);
+    pinMode(PPM_PIN,INPUT_PULLUP);
 
     //capture compare regs TIMx_CCRx used to hold val after a transition on corresponding ICx
 

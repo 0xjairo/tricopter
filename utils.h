@@ -3,9 +3,6 @@
 // Comment out to disable USB printouts
 #define USB_VERBOSE
 
-// ASCII escape character
-#define ESC       ((uint8)27)
-
 // Default USART baud rate
 #define BAUD     9600
 
