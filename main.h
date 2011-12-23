@@ -17,3 +17,5 @@
 #define ROTOR2_PIN 15
 /* Timer 4, Ch 3 */
 #define ROTOR3_PIN 32
+
+#define PPM_PIN 27

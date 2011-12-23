@@ -11,13 +11,6 @@
 // ASCII escape character
 #define ESC       ((uint8)27)
 
-
-// Servo constants
-#define SERVO_MIN 3430
-#define SERVO_MAX 6800
-#define PPM_CNTS_TO_DEG 0.09
-#define SERVO_ANGLE_TO_DUTY 37.44444 
-
 // Globals
 HardwareTimer timer4(4);
 
