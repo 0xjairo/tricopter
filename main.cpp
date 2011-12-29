@@ -33,7 +33,8 @@ void setup() {
 
     // ppm decode setup
     // init timer1 and dma
-    init_timer_input_capture_dma();
+	init_ppm_timer_and_dma();
+	ppm_decode_go();
 
     // initialize usb
     SerialUSB.begin();
@@ -73,7 +74,7 @@ int main(void) {
             	break;
 
             case 'd':
-            	ppm_decode_interrupt_dma();
+            	print_ppm_data();
             	break;
 
             case 'h':

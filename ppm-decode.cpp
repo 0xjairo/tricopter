@@ -5,6 +5,7 @@
 // Various Maple tests.. including timer capture to memory via dma =)
 // */
 #include "main.h"
+#include "ppm-decode.h"
 #include "wirish.h"
 #include "usb.h"
 #include "timer.h"
@@ -20,7 +21,11 @@
 // TIMER_PRESCALE*(1/72 MHz) =
 #define TICK_PERIOD ( TIMER_PRESCALE*0.0000138888889f )
 
-HardwareTimer timer4 = HardwareTimer(4);
+HardwareTimer timer4(4);// = HardwareTimer(4);
+timer_dev *t = TIMER4;
+timer_reg_map r = TIMER4->regs;
+
+
 volatile int dma_data_captured=0;            //set to 1 when dma complete.
 volatile uint16 data[TIMERS];   //place to put the data via dma
 uint16 delta=0;
@@ -33,10 +38,11 @@ void printData(){
 	for(int i=0; i<TIMERS; i++){
 
 		if(ppm_timeout==1){
+
 			if(do_print==1)
 			{
 				SerialUSB.println("PPM timeout!");
-				do_print=0;
+				do_print=0; // print only once for each timeout
 			}
 			return;
 		}
@@ -66,7 +72,6 @@ void dma_isr()
 
 	timer4.setCount(0);  // clear counter
 	if(ppm_timeout) ppm_timeout=0;
-	if(!do_print) do_print=1;
 	switch(cause)
 	{
 		case DMA_TRANSFER_COMPLETE:
@@ -98,17 +103,22 @@ void ppm_timeout_isr()
 	// This failure mode indicates we lost comm with
 	// the transmitter
 
-	//TODO: re-initialize the timer and wait for ppm signal
+	//TODO: re-initialize the dma and wait for ppm signal
 	//re-initializing should ensure that the ppm signal
 	// is captured on the sync pulse.
 	ppm_timeout=1;
-	dma_data_captured=0;
+	dma_disable(DMA1, DMA_CH1);
+    init_ppm_dma_transfer();
 }
 
-void init_timer_input_capture_dma()
+void init_ppm_timer_and_dma()
 {
+	init_ppm_timer();
+	init_ppm_dma_transfer();
+}
 
-    timer_dev *t = TIMER4;
+void init_ppm_timer()
+{
 
     timer4.pause();
     timer4.setPrescaleFactor(TIMER_PRESCALE);
@@ -123,8 +133,6 @@ void init_timer_input_capture_dma()
 
 
     timer4.refresh();
-
-    timer_reg_map r = t->regs;
 
     //capture compare regs TIMx_CCRx used to hold val after a transition on corresponding ICx
 
@@ -181,7 +189,10 @@ void init_timer_input_capture_dma()
     //sets the Capture/Compare 1 DMA request enable bit on the DMA/interrupt enable register.
     //bit 9 is CC1DE as defined on page 393.
     bitSet(r.gen->DIER,9);
+}
 
+void init_ppm_dma_transfer()
+{
     dma_init(DMA1);
     dma_setup_transfer( DMA1,    //dma device, dma1 here because that's the only one we have
                         DMA_CH1, //dma channel, channel1, because it looks after tim4_ch1 (timer4, channel1)
@@ -206,10 +217,25 @@ void init_timer_input_capture_dma()
 
 }
 
-void ppm_decode_interrupt_dma()
+void print_ppm_data()
 {
-    timer_dev *t = TIMER4;
-    timer_reg_map r = t->regs;
+	//busy wait on the dma_data_captured flag
+	//break busy wait if user input is available
+	while(!dma_data_captured && !SerialUSB.available());
+
+	do_print=1;
+	while(!SerialUSB.available())
+	{
+	  //dump the data
+	  printData();
+	  delay(100);
+	}
+
+
+}
+
+void ppm_decode_go()
+{
 
 
 	SerialUSB.print("Starting timer.. rising edge of D");
@@ -219,38 +245,6 @@ void ppm_decode_interrupt_dma()
 	timer4.resume();
 	//the timer is now counting up, and any rising edges on D16
 	//will trigger a DMA request to clone the timercapture to the array
-
-//	//If we weren't using DMA, we could busy wait on the CC1IF bit in SR
-//	//
-//	//when the timer captures, the CC1IF bit will be set on the timer SR register.
-//	//CC1IF bit is bit 1 (page 332)
-//	for(int i=0;i<10;i++){
-//
-//		while(!bitRead(r.gen->SR, 1));
-//		SerialUSB.print("tt:");
-//		SerialUSB.print(r.gen->CCR1);
-//		SerialUSB.print(" OF:");
-//		SerialUSB.println(bitRead(r.gen->SR, 9)); // over capture flag
-//	}
-
-	//SerialUSB.println("Waiting for dma_data_captured flag from dma...");
-	//busy wait on the dma_data_captured flag
-	//we could do real work here if wanted..
-	while(!dma_data_captured && !SerialUSB.available());
-
-	while(!SerialUSB.available()  && do_print==1)
-	{
-	  //dump the data
-	  printData();
-	  delay(100);
-	}
-
-	//turn off the timer & tidy up before we leave this cmd.
-	timer4.pause();
-
-	//      dma_disable(DMA1, DMA_CH2);
-	//      dma_detach_interrupt(DMA1, DMA_CH2);
-	dma_data_captured=0;
 
 }
 
