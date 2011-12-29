@@ -12,7 +12,7 @@
 #define ESC       ((uint8)27)
 
 // Globals
-HardwareTimer timer4(4);
+HardwareTimer timer1(1);
 
 // -- setup() and loop() ------------------------------------------------------
 
@@ -20,12 +20,16 @@ void setup() {
     // Set up the LED to blink
     pinMode(BOARD_LED_PIN, OUTPUT);
 
-    // Setup timer4 for PWM
-    timer4.setMode(TIMER_CH1, TIMER_PWM);
-    timer4.setPrescaleFactor(21);
+    // Setup timer1 for PWM
+    timer1.setMode(TIMER_CH1, TIMER_PWM);
+    timer1.setPrescaleFactor(21);
     pinMode(ROTOR1_PIN, PWM);
     pinMode(ROTOR2_PIN, PWM);
     pinMode(ROTOR3_PIN, PWM);
+    //using timer4, channel1, maps to pin d16 (maple mini) according to maple master pin map.
+	pinMode(PPM_PIN, INPUT_PULLUP);
+
+
 
     // ppm decode setup
     // init timer1 and dma
