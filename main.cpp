@@ -6,35 +6,35 @@
 #include "utils.h"
 #include "esc-control.h"
 #include "ppm-decode.h"
+#include "imu-interface.h"
 
 
 // ASCII escape character
 #define ESC       ((uint8)27)
 
-// Globals
-HardwareTimer timer1(1);
-
 // -- setup() and loop() ------------------------------------------------------
 
 void setup() {
+	disable_usarts();
+
     // Set up the LED to blink
     pinMode(BOARD_LED_PIN, OUTPUT);
-
-    // Setup timer1 for PWM
-    timer1.setMode(TIMER_CH1, TIMER_PWM);
-    timer1.setPrescaleFactor(21);
-    pinMode(ROTOR1_PIN, PWM);
-    pinMode(ROTOR2_PIN, PWM);
-    pinMode(ROTOR3_PIN, PWM);
-    //using timer4, channel1, maps to pin d16 (maple mini) according to maple master pin map.
+	// Set up ESC pins
+	pinMode(ROTOR1_PIN, PWM);
+	pinMode(ROTOR2_PIN, PWM);
+	pinMode(ROTOR3_PIN, PWM);
+	// Set up PPM pin
 	pinMode(PPM_PIN, INPUT_PULLUP);
 
+    // init motor controllers
+    esc_init();
 
-
-    // ppm decode setup
-    // init timer1 and dma
+	// ppm decode setup
 	init_ppm_timer_and_dma();
 	ppm_decode_go();
+
+	// init imu rx
+	Serial3.begin(28800);
 
     // initialize usb
     SerialUSB.begin();
@@ -55,7 +55,7 @@ int main(void) {
 
     while (1) {
         toggleLED();
-        delay(250);
+        delay(20);
 
         while (SerialUSB.available()) {
             uint8 input = SerialUSB.read();
@@ -75,6 +75,11 @@ int main(void) {
 
             case 'd':
             	print_ppm_data();
+            	break;
+
+            case 'i':
+            	/// imu data
+            	imu_print_data();
             	break;
 
             case 'h':

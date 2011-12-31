@@ -16,6 +16,21 @@ const char* dummy_data = ("qwertyuiopasdfghjklzxcvbnmmmmmm,./1234567890-="
                           "qwertyuiopasdfghjklzxcvbnm,./1234567890");
 
 
+HardwareTimer timer1(1);
+
+void esc_init()
+{
+	// Setup timer1 for PWM
+	timer1.setMode(TIMER_CH1, TIMER_PWM);
+	timer1.setPrescaleFactor(21);
+
+	// Set throttle to minimum
+	for(int i=0;i<3;i++)
+	{
+		set_rotor_throttle(i+1, 0);
+	}
+
+}
 
 void ppm_decode(void){
     SerialUSB.println("Decoding DIY Drones PPM encoder on pin D27");
@@ -120,7 +135,7 @@ void set_rotor_throttle(int rotor, float rate)
 	// 2.00ms = 6800counts = 100% (180deg)
 	int duty = SERVO_MIN + (float)(SERVO_MAX-SERVO_MIN)*rate;
 
-#ifdef DEBUG
+#ifdef COPTER_DEBUG
 	SerialUSB.print("Rotor:D");
 	SerialUSB.print(pin);
 	SerialUSB.print("\tRate:");
@@ -134,27 +149,49 @@ void set_rotor_throttle(int rotor, float rate)
 }
 
 void cmd_servo_sweep(void) {
-    SerialUSB.println("Testing D15 and D16 PWM header with a servo sweep. "
+    SerialUSB.println("Testing rotors.  Sweeping from 0 to 50%"
                       "Press any key to stop.");
     SerialUSB.println();
 
     disable_usarts();
 
+    uint8 input;
     float rate1 = 0;
     float rate2 = 0;
-    while (!SerialUSB.available()) {
-        rate1 += 0.0005;
-        rate2 += 0.001;
-        if (rate1 > 1.0)  rate1 = 0.0;
-        if (rate2 > 1.0)  rate2 = 0.0;
+    while (1) {
+
+    	input = SerialUSB.read();
+    	if (input == 'j')
+    	{
+			rate1 -= 0.01;
+		}
+    	else if(input == 'k')
+    	{
+    		rate1 += 0.01;
+    	}
+    	else if(input == 'z')
+    	{
+    		rate1 = 0;
+
+    	}else{
+    		break;
+    	}
+
+
+        if (rate1 > 1.0)  rate1 = 1.0;
+
+        SerialUSB.println(rate1);
 
         set_rotor_throttle(1, rate1);
-        set_rotor_throttle(2, rate2);
+        set_rotor_throttle(2, rate1);
+        set_rotor_throttle(3, rate1);
         delay(20);
     }
 
     set_rotor_throttle(1, 0.0);
     set_rotor_throttle(2, 0.0);
+    set_rotor_throttle(3, 0.0);
+
 
 
 //    for (uint32 i = 0; i < BOARD_NR_PWM_PINS; i++) {
