@@ -4,12 +4,6 @@
 #include "esc-control.h"
 
 
-// Servo constants
-#define SERVO_MIN 3430
-#define SERVO_MAX 6855
-#define PPM_CNTS_TO_DEG 0.09
-#define SERVO_ANGLE_TO_DUTY 37.44444 
-
 uint8 gpio_state[BOARD_NR_GPIO_PINS];
 
 const char* dummy_data = ("qwertyuiopasdfghjklzxcvbnmmmmmm,./1234567890-="
@@ -32,79 +26,6 @@ void esc_init()
 
 }
 
-void ppm_decode(void){
-    SerialUSB.println("Decoding DIY Drones PPM encoder on pin D27");
-    
-    int pin = 16;
-    uint8 prev_state;
-    int time_elapsed = 0;
-    int time_start = 0;
-    int i = 0;
-    int channels[8];
-    float angle;
-
-    pinMode(pin, INPUT);
-    prev_state = (uint8)digitalRead(pin);
-
-    while(!SerialUSB.available()){
-
-        uint8 current_state = (uint8)digitalRead(pin);
-        if (current_state != prev_state) {
-            if (current_state) {
-
-                time_elapsed = (micros() - time_start);
-                time_start = micros();
-
-            }else{
-#ifdef USB_VERBOSE
-                SerialUSB.print(i);
-                SerialUSB.print(":");
-                SerialUSB.print(time_elapsed);
-#endif
-                if(time_elapsed < 2500 && i < 8){
-                    if(i==2){
-                        if(time_elapsed < 1000){
-                            angle = 0.0;
-                        }else if(time_elapsed > 2000){
-                            angle = 90.0;
-                        }else{
-                            angle = (float)((time_elapsed-1000)*PPM_CNTS_TO_DEG);
-                        }
-                        SerialUSB.print(":");
-                        SerialUSB.print(angle);
-                        set_servo_angle(angle);
-                    }
-                    channels[i++] = time_elapsed;
-                }else{
-#ifdef USB_VERBOSE
-                    SerialUSB.println("");
-#endif
-                    i=0;
-                }
-#ifdef USB_VERBOSE
-                SerialUSB.print("\t");
-#endif
-
-                time_elapsed = 0;
-            }
-            prev_state = current_state;
-        }
-
-    }
-    SerialUSB.println("Done!");
-    
-}
-
-void set_servo_angle(float angle)
-{
-    int duty;
-    
-    disable_usarts();
-
-    duty = SERVO_MIN + (int)(angle * SERVO_ANGLE_TO_DUTY);
-    if(duty > SERVO_MAX) duty = SERVO_MAX;
-    pwmWrite(ROTOR1_PIN, duty);
-}
 
 // rotor = 1,2,3
 // rate = 0.0 to 1.00 %
@@ -133,7 +54,7 @@ void set_rotor_throttle(int rotor, float rate)
 	// 1.50ms = 4915counts = 50% (90deg)
 	// 1.75ms = 5734counts =
 	// 2.00ms = 6800counts = 100% (180deg)
-	int duty = SERVO_MIN + (float)(SERVO_MAX-SERVO_MIN)*rate;
+	int duty = PPM_MIN + (float)(PPM_MAX-PPM_MIN)*rate;
 
 #ifdef COPTER_DEBUG
 	SerialUSB.print("Rotor:D");
@@ -148,16 +69,17 @@ void set_rotor_throttle(int rotor, float rate)
 
 }
 
-void cmd_servo_sweep(void) {
-    SerialUSB.println("Testing rotors.  Sweeping from 0 to 50%"
-                      "Press any key to stop.");
+void esc_manual_control(void) {
+    SerialUSB.println("Press \'j\' to lower speed.");
+    SerialUSB.println("Press \'k\' to increase speed.");
+    SerialUSB.println("Press \'z\' to zero command.");
+    SerialUSB.println("Any other key zeroes command and exits");
     SerialUSB.println();
 
     disable_usarts();
 
     uint8 input;
     float rate1 = 0;
-    float rate2 = 0;
     while (1) {
 
     	input = SerialUSB.read();

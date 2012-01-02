@@ -27,3 +27,10 @@
 
 /* 3_RX */
 #define IMU_RX_PIN 0
+
+
+/* min: 1ms in tick counts */
+#define PPM_MIN 3430
+/* max: 2ms in tick counts */
+#define PPM_MAX 6855
+

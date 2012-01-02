@@ -7,6 +7,7 @@
 #include "esc-control.h"
 #include "ppm-decode.h"
 #include "imu-interface.h"
+#include "yaw-servo.h"
 
 
 // ASCII escape character
@@ -23,11 +24,16 @@ void setup() {
 	pinMode(ROTOR1_PIN, PWM);
 	pinMode(ROTOR2_PIN, PWM);
 	pinMode(ROTOR3_PIN, PWM);
+	// Yaw servo pin
+	pinMode(YAW_SERVO_PIN, PWM);
 	// Set up PPM pin
 	pinMode(PPM_PIN, INPUT_PULLUP);
 
     // init motor controllers
     esc_init();
+
+    // yaw servo init
+    yaw_servo_init();
 
 	// ppm decode setup
 	init_ppm_timer_and_dma();
@@ -91,7 +97,7 @@ int main(void) {
                 break;
 
             case 's':
-                cmd_servo_sweep();
+                esc_manual_control();
                 break;
 
             case 'b':
