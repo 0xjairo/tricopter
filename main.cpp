@@ -100,6 +100,10 @@ int main(void) {
                 esc_manual_control();
                 break;
 
+            case 'y':
+            	yaw_manual_control();
+            	break;
+
             case 'b':
                 cmd_board_info();
                 break;

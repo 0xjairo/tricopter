@@ -10,7 +10,7 @@
 
 void yaw_servo_init();
 void set_servo_angle(float angle);
-
+void yaw_manual_control();
 
 
 // Servo constants
