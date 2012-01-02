@@ -6,4 +6,7 @@ void init_ppm_timer_and_dma();
 void init_ppm_timer();
 void init_ppm_dma_transfer();
 void print_ppm_data();
+void ppm_decode(void);
+
+
 

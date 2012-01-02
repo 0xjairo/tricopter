@@ -11,6 +11,7 @@
 #include "timer.h"
 #include "dma.h"
 #include "utils.h"
+#include "yaw-servo.h"
 
 //number of captures to do by dma
 #define TIMERS 9
@@ -248,3 +249,65 @@ void ppm_decode_go()
 
 }
 
+void ppm_decode(void){
+    SerialUSB.println("Decoding DIY Drones PPM encoder on pin D27");
+
+    int pin = 16;
+    uint8 prev_state;
+    int time_elapsed = 0;
+    int time_start = 0;
+    int i = 0;
+    int channels[8];
+    float angle;
+
+    pinMode(pin, INPUT);
+    prev_state = (uint8)digitalRead(pin);
+
+    while(!SerialUSB.available()){
+
+        uint8 current_state = (uint8)digitalRead(pin);
+        if (current_state != prev_state) {
+            if (current_state) {
+
+                time_elapsed = (micros() - time_start);
+                time_start = micros();
+
+            }else{
+#ifdef USB_VERBOSE
+                SerialUSB.print(i);
+                SerialUSB.print(":");
+                SerialUSB.print(time_elapsed);
+#endif
+                if(time_elapsed < 2500 && i < 8){
+                    if(i==2){
+                        if(time_elapsed < 1000){
+                            angle = 0.0;
+                        }else if(time_elapsed > 2000){
+                            angle = 90.0;
+                        }else{
+                            angle = (float)((time_elapsed-1000)*PPM_CNTS_TO_DEG);
+                        }
+                        SerialUSB.print(":");
+                        SerialUSB.print(angle);
+                        set_servo_angle(angle);
+                    }
+                    channels[i++] = time_elapsed;
+                }else{
+#ifdef USB_VERBOSE
+                    SerialUSB.println("");
+#endif
+                    i=0;
+                }
+#ifdef USB_VERBOSE
+                SerialUSB.print("\t");
+#endif
+
+                time_elapsed = 0;
+            }
+            prev_state = current_state;
+        }
+
+    }
+    SerialUSB.println("Done!");
+
+}

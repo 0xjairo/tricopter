@@ -1,0 +1,23 @@
+/*
+ * yaw_servo.h
+ *
+ *  Created on: Jan 1, 2012
+ *      Author: jairo
+ */
+
+#ifndef YAW_SERVO_H_
+#define YAW_SERVO_H_
+
+void yaw_servo_init();
+void set_servo_angle(float angle);
+
+
+
+// Servo constants
+#define SERVO_MIN 3430
+#define SERVO_MAX 6855
+#define PPM_CNTS_TO_DEG 0.09
+#define SERVO_ANGLE_TO_DUTY 37.44444
+
+
+#endif /* YAW_SERVO_H_ */
