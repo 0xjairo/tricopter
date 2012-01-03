@@ -16,6 +16,8 @@ void esc_init()
 {
 	// Setup timer1 for PWM
 	timer1.setMode(TIMER_CH1, TIMER_PWM);
+	timer1.setMode(TIMER_CH2, TIMER_PWM);
+	timer1.setMode(TIMER_CH3, TIMER_PWM);
 	timer1.setPrescaleFactor(21);
 
 	// Set throttle to minimum
@@ -76,8 +78,6 @@ void esc_manual_control(void) {
     SerialUSB.println("Any other key zeroes command and exits");
     SerialUSB.println();
 
-    disable_usarts();
-
     uint8 input;
     float rate1 = 0;
     while (1) {
@@ -93,7 +93,7 @@ void esc_manual_control(void) {
     	}
     	else if(input == 'z')
     	{
-    		rate1 = 0;
+    		rate1 = 0.00;
 
     	}else{
     		break;
@@ -114,14 +114,5 @@ void esc_manual_control(void) {
     set_rotor_throttle(2, 0.0);
     set_rotor_throttle(3, 0.0);
 
-
-
-//    for (uint32 i = 0; i < BOARD_NR_PWM_PINS; i++) {
-//        if (boardUsesPin(i))
-//            continue;
-//        pinMode(boardPWMPins[i], OUTPUT);
-//    }
-//    init_all_timers(1);
-    enable_usarts();
 }
 

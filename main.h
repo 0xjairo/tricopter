@@ -11,7 +11,7 @@
  *
  */
 
-#define COPTER_DEBUG
+//#define COPTER_DEBUG
 
 /* Timer 1, Ch 1 */
 #define ROTOR1_PIN 27
@@ -19,14 +19,14 @@
 #define ROTOR2_PIN 26
 /* Timer 1, Ch 3 */
 #define ROTOR3_PIN 25
-/* Mounted on rotor 3 */
-#define YAW_SERVO_PIN 24
+/* Timer 2, Channel 4 pin */
+#define YAW_SERVO_PIN 8
 
 /* Timer 4, Ch 1 */
 #define PPM_PIN 16
 
-/* 3_RX */
-#define IMU_RX_PIN 0
+/* 3_RX  (pin 0 on Maple Mini) */
+#define IMU_RX_PIN BOARD_USART3_RX_PIN
 
 
 /* min: 1ms in tick counts */

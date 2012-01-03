@@ -16,7 +16,6 @@
 // -- setup() and loop() ------------------------------------------------------
 
 void setup() {
-	disable_usarts();
 
     // Set up the LED to blink
     pinMode(BOARD_LED_PIN, OUTPUT);
@@ -24,7 +23,7 @@ void setup() {
 	pinMode(ROTOR1_PIN, PWM);
 	pinMode(ROTOR2_PIN, PWM);
 	pinMode(ROTOR3_PIN, PWM);
-	// Yaw servo pin
+	// Yaw servo pin (8)
 	pinMode(YAW_SERVO_PIN, PWM);
 	// Set up PPM pin
 	pinMode(PPM_PIN, INPUT_PULLUP);
@@ -39,8 +38,8 @@ void setup() {
 	init_ppm_timer_and_dma();
 	ppm_decode_go();
 
-	// init imu rx
-	Serial3.begin(28800);
+	// imu interface init
+	imu_interface_init();
 
     // initialize usb
     SerialUSB.begin();
