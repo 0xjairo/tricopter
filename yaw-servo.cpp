@@ -9,20 +9,34 @@
 #include "yaw-servo.h"
 #include "wirish.h"
 
+HardwareTimer timer2(2);
+
 void yaw_servo_init()
 {
+	timer2.setMode(TIMER_CH4, TIMER_PWM);
+	timer2.setPrescaleFactor(21);
+
 	set_servo_angle(0.0);
 
 }
 
 
-void set_servo_angle(float angle)
+float set_servo_angle(float angle)
 {
     int duty;
+
+    // bound angle
+    if(angle > YAW_SERVO_ANGLE_MAX)
+    	angle = YAW_SERVO_ANGLE_MAX;
+
+    if(angle < YAW_SERVO_ANGLE_MIN)
+    	angle = YAW_SERVO_ANGLE_MIN;
 
     duty = SERVO_MIN + (int)(angle * SERVO_ANGLE_TO_DUTY);
     if(duty > SERVO_MAX) duty = SERVO_MAX;
     pwmWrite(YAW_SERVO_PIN, duty);
+
+    return angle;
 }
 
 void yaw_manual_control()
@@ -55,11 +69,7 @@ void yaw_manual_control()
 		}
 
 
-		if (angle > 90)  angle = 90;
-
-		SerialUSB.println(angle);
-
-		set_servo_angle(angle);
+		SerialUSB.println(set_servo_angle(angle));
 		delay(20);
 	}
 
