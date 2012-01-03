@@ -6,11 +6,13 @@
  */
 #include "wirish.h"
 #include "imu-interface.h"
+#include "GPS_IMU.h"
+
 
 void imu_interface_init()
 {
 	// init imu rx
-	Serial3.begin(38400);
+	init_gps();
 
 }
 

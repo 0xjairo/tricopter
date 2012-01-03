@@ -1,32 +1,54 @@
-#if GPS_PROTOCOL == 3
-	// Performance Monitoring variables
-	// Data collected and reported for ~1 minute intervals
-	//int IMU_mainLoop_count = 0;				//Main loop cycles since last report
-	int G_Dt_max = 0.0;						//Max main loop cycle time in milliseconds
-	byte gyro_sat_count = 0;
-	byte adc_constraints = 0;
-	byte renorm_sqrt_count = 0;
-	byte renorm_blowup_count = 0;
-	byte gps_payload_error_count = 0;
-	byte gps_checksum_error_count = 0;
-	byte gps_pos_fix_count = 0;
-	byte gps_nav_fix_count = 0;
-	byte gps_messages_sent = 0;
-	byte gps_messages_received = 0;
-	int imu_messages_received = 0;
-	byte imu_payload_error_count = 0;
-	byte imu_checksum_error_count = 0;
-	long perf_mon_timer = 0;
+#include "GPS_IMU.h"
+#include "wirish.h"
 
-	byte IMU_buffer[24];
-	byte payload_length	= 0;
-	byte payload_counter	= 0;
+byte    GPS_fix                         = BAD_GPS;              // This variable store the status of the GPS
+byte    GPS_update                      = GPS_NONE;             // do we have GPS data to work with?
+boolean invalid_location        = true;         // used to indicate we can't navigate witout good GPS data - the equations will choke
 
-	//IMU Checksum
-	byte ck_a = 0;
-	byte ck_b = 0;
-	byte IMU_ck_a = 0;
-	byte IMU_ck_b = 0;
+// used to consruct the GPS data from Bytes to ints and longs
+// ----------------------------------------------------------
+union long_union {
+        int32 dword;
+        uint8 byte[4];
+} longUnion;
+
+union int_union {
+        int16 word;
+        uint8 byte[2];
+} intUnion;
+
+long roll_sensor                        = 0;            // how much we're turning in degrees * 100
+long pitch_sensor                       = 0;            // our angle of attack in degrees * 100
+long    ground_course           = 0;                    // degrees * 100 dir of plane
+
+// Performance Monitoring variables
+// Data collected and reported for ~1 minute intervals
+//int IMU_mainLoop_count = 0;				//Main loop cycles since last report
+int G_Dt_max = 0.0;						//Max main loop cycle time in milliseconds
+byte gyro_sat_count = 0;
+byte adc_constraints = 0;
+byte renorm_sqrt_count = 0;
+byte renorm_blowup_count = 0;
+byte gps_payload_error_count = 0;
+byte gps_checksum_error_count = 0;
+byte gps_pos_fix_count = 0;
+byte gps_nav_fix_count = 0;
+byte gps_messages_sent = 0;
+byte gps_messages_received = 0;
+int imu_messages_received = 0;
+byte imu_payload_error_count = 0;
+byte imu_checksum_error_count = 0;
+long perf_mon_timer = 0;
+
+byte IMU_buffer[24];
+byte payload_length	= 0;
+byte payload_counter	= 0;
+
+//IMU Checksum
+byte ck_a = 0;
+byte ck_b = 0;
+byte IMU_ck_a = 0;
+byte IMU_ck_b = 0;
 
 /****************************************************************
  * Here you have all the stuff for data reception from the IMU_GPS
@@ -49,7 +71,7 @@
 
 void init_gps(void)
 {
-	Serial.begin(THIRTY_EIGHT_K_BAUD); //Universal Sincronus Asyncronus Receiveing Transmiting 
+	Serial3.begin(38400); //Universal Sincronus Asyncronus Receiveing Transmiting
 	GPS_update 	= GPS_NONE;
 	GPS_fix 	= BAD_GPS;
 }
@@ -88,18 +110,18 @@ void decode_gps(void)
 	byte data;
 	int message_num;
 
-	numc = Serial.available();
+	numc = Serial3.available();
 	if (numc > 0)
 		for (int i=0;i<numc;i++)	// Process bytes received
 		{
-			data = Serial.read();
+			data = Serial3.read();
 			switch(IMU_step)		 //Normally we start from zero. This is a state machine
 			{
 			case 0:	
 				if(data == 0x44) 
 					IMU_step++; //First byte of data packet header is correct, so jump to the next step
 					//else
-					//Serial.println("IMU parser Case 0 fail");	 // This line for debugging only
+					//SerialUSB.println("IMU parser Case 0 fail");	 // This line for debugging only
 				break; 
 
 			case 1:	
@@ -107,7 +129,7 @@ void decode_gps(void)
 					 IMU_step++;	//Second byte of data packet header is correct
 				else {	
 					// This line for debugging only
-					//Serial.println("IMU parser Case 1 fail");	 
+					//SerialUSB.println("IMU parser Case 1 fail");
 					IMU_step=0;		 //Second byte is not correct so restart to step zero and try again.	
 				}	 
 				break;
@@ -116,7 +138,7 @@ void decode_gps(void)
 				if(data == 0x59) 
 					 IMU_step++;	//Third byte of data packet header is correct
 				else {
-					//Serial.println("IMU parser Case 2 fail");	 // This line for debugging only
+					//SerialUSB.println("IMU parser Case 2 fail");	 // This line for debugging only
 					IMU_step=0;		 //Third byte is not correct so restart to step zero and try again.
 				}		 
 				break;
@@ -125,7 +147,7 @@ void decode_gps(void)
 				if(data == 0x64)	 
 					 IMU_step++;	//Fourth byte of data packet header is correct, Header complete
 				else {
-					//Serial.println("IMU parser Case 3 fail");	 // This line for debugging only
+					//SerialUSB.println("IMU parser Case 3 fail");	 // This line for debugging only
 					IMU_step=0;		 //Fourth byte is not correct so restart to step zero and try again.
 				}		 
 				break;
@@ -171,22 +193,22 @@ void decode_gps(void)
 				if((ck_a == IMU_ck_a) && (ck_b == IMU_ck_b)) {
 					if (message_num == 0x02) {
 						IMU_join_data();
-					} else if (message_num == 0x04) {
-						GPS_join_data1();
-						GPS_timer = DIYmillis();
-					} else if (message_num == 0x05) { 
-						GPS_join_data2();
-					} else if (message_num == 0x03) {
-						GPS_join_data();
-						GPS_timer = DIYmillis();
-					} else if (message_num == 0x0a) {
-						PERF_join_data();
+//					} else if (message_num == 0x04) {
+//						GPS_join_data1();
+//						GPS_timer = DIYmillis();
+//					} else if (message_num == 0x05) {
+//						GPS_join_data2();
+//					} else if (message_num == 0x03) {
+//						GPS_join_data();
+//						GPS_timer = DIYmillis();
+//					} else if (message_num == 0x0a) {
+//						PERF_join_data();
 					} else {
-						Serial.print("Invalid message number = ");
-						Serial.println(message_num,DEC);
+						SerialUSB.print("Invalid message number = ");
+						SerialUSB.println(message_num,DEC);
 					}
 				} else {
-					//Serial.println("Checksum error");	//bad checksum
+					//SerialUSB.println("Checksum error");	//bad checksum
 					imu_checksum_error_count++;
 				} 						 
 				// Variable initialization
@@ -194,27 +216,27 @@ void decode_gps(void)
 				payload_counter = 0;
 				ck_a = 0;
 				ck_b = 0;
-				IMU_timer = DIYmillis(); //Restarting timer...
+				IMU_timer = millis(); //Restarting timer...
 				break;
 						}
 					}// End for...
 	
-	if(DIYmillis() - IMU_timer > 500){
+	if(millis() - IMU_timer > 500){
 		digitalWrite(12, LOW);	//If we don't receive any byte in a half second turn off gps fix LED...
 		GPS_update = GPS_IMU_ERROR;
 	}
 
-	if((DIYmillis() - GPS_timer) > 2000){
+	if((millis() - GPS_timer) > 2000){
 		digitalWrite(12, LOW);	//If we don't receive any byte in two seconds turn off gps fix LED... 
 		if(GPS_fix != FAILED_GPS){
 			GPS_fix = BAD_GPS;
 		}
 		GPS_update = GPS_NONE;
 
-		if((DIYmillis() - GPS_timer) > 10000){
+		if((millis() - GPS_timer) > 10000){
 			invalid_location = true;
 			GPS_fix = FAILED_GPS;
-			//Serial.println("XXX \t No GPS, last 10s \t ***");
+			//SerialUSB.println("XXX \t No GPS, last 10s \t ***");
 		}
 	}
 }
@@ -245,105 +267,6 @@ void IMU_join_data()
 	GPS_update |= GPS_IMU;
 }
 
- /****************************************************************
- *
- ****************************************************************/
-void GPS_join_data()
-{
-	gps_messages_received++;
-	int j=0;
-
-	current_loc.lng = join_4_bytes(&IMU_buffer[j]);		// Lat and Lon * 10**7
-	j += 4;
-
-	current_loc.lat = join_4_bytes(&IMU_buffer[j]);
-	j += 4;
-
-	//Storing GPS Height above the sea level
-	intUnion.byte[0] = IMU_buffer[j++];
-	intUnion.byte[1] = IMU_buffer[j++];
-	current_loc.alt = (long)intUnion.word * 10;		 //	Altitude in meters * 100
-
-	//Storing Speed (3-D)
-	intUnion.byte[0] = IMU_buffer[j++];
-	intUnion.byte[1] = IMU_buffer[j++];
-	ground_speed = (float)intUnion.word;			// Speed in M/S * 100
-
-	//We skip the gps ground course because we use yaw value from the IMU for ground course
-	j += 2;
-	iTOW = join_4_bytes(&IMU_buffer[j]);		//	Time of Week in milliseconds
-
-	GPS_update |= GPS_BOTH;
-	GPS_fix = VALID_GPS;
-	print_telemetry = true;
-}
-
-// Doug what does this function do?
-void GPS_join_data1()
-{
-	gps_messages_received++;
-	int j=0;
-	current_loc.lng = join_4_bytes(&IMU_buffer[j]);		// Lat and Lon * 10**7
-	j += 4;
-	current_loc.lat = join_4_bytes(&IMU_buffer[j]);
-
-	GPS_update |= GPS_POSITION;
-	GPS_fix = VALID_GPS;
-	print_telemetry = true;
-}
-
-// Doug what does this function do?
-void GPS_join_data2()
-{
-	gps2_messages_received++;
-	int j=0;
-	//Storing GPS Height above the sea level
-	intUnion.byte[0] = IMU_buffer[j++];
-	intUnion.byte[1] = IMU_buffer[j++];
-	current_loc.alt = (long)intUnion.word * 10;		 //	Altitude in meters * 100
-	//Storing Speed (3-D)
-	intUnion.byte[0] = IMU_buffer[j++];
-	intUnion.byte[1] = IMU_buffer[j++];
-	ground_speed = (float)intUnion.word;			// Speed in M/S * 100
-
-	//We skip the gps ground course because we use yaw value from the IMU for ground course
-	//j += 2;
-
-	iTOW = join_4_bytes(&IMU_buffer[j]);		//	Time of Week in milliseconds
-
-	GPS_update |= GPS_HEADING;
-}
-
- /****************************************************************
- *
- ****************************************************************/
-void PERF_join_data()
-{
-	int j=0;
-	perf_mon_timer = join_4_bytes(&IMU_buffer[j]);		// time in milliseconds of reporting interval
-	j += 4;
-
-	//IMU main loop cycles in reporting interval
-	intUnion.byte[0] = IMU_buffer[j++];
-	intUnion.byte[1] = IMU_buffer[j++];
-	IMU_mainLoop_count = intUnion.word ;
-
-	//Max IMU main loop time in milliseconds
-	intUnion.byte[0] = IMU_buffer[j++];
-	intUnion.byte[1] = IMU_buffer[j++];
-	G_Dt_max = (float)intUnion.word;
-
-	gyro_sat_count = IMU_buffer[j++];
-	adc_constraints = IMU_buffer[j++];
-	renorm_sqrt_count = IMU_buffer[j++];
-	renorm_blowup_count = IMU_buffer[j++];
-	gps_payload_error_count = IMU_buffer[j++];
-	gps_checksum_error_count = IMU_buffer[j++];
-	gps_pos_fix_count = IMU_buffer[j++];
-	gps_nav_fix_count = IMU_buffer[j++];
-	gps_messages_sent = IMU_buffer[j++];
-}
-
 
 void checksum(byte data)
 {
@@ -353,12 +276,12 @@ void checksum(byte data)
 
 void wait_for_data(byte many)
 {
-	while(Serial.available() <= many); 
+	while(Serial3.available() <= many);
 }
 
  // Join 4 bytes into a long
  // -------------------------
-int32_t join_4_bytes(byte Buffer[])
+int32 join_4_bytes(byte Buffer[])
 {
 	longUnion.byte[0] = *Buffer;
 	longUnion.byte[1] = *(Buffer+1);
@@ -368,6 +291,5 @@ int32_t join_4_bytes(byte Buffer[])
 }
 
 
-#endif
 
 
