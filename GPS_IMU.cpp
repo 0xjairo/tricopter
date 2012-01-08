@@ -222,12 +222,12 @@ void decode_gps(void)
 					}// End for...
 	
 	if(millis() - IMU_timer > 500){
-		digitalWrite(12, LOW);	//If we don't receive any byte in a half second turn off gps fix LED...
+//		digitalWrite(12, LOW);	//If we don't receive any byte in a half second turn off gps fix LED...
 		GPS_update = GPS_IMU_ERROR;
 	}
 
 	if((millis() - GPS_timer) > 2000){
-		digitalWrite(12, LOW);	//If we don't receive any byte in two seconds turn off gps fix LED... 
+//		digitalWrite(12, LOW);	//If we don't receive any byte in two seconds turn off gps fix LED...
 		if(GPS_fix != FAILED_GPS){
 			GPS_fix = BAD_GPS;
 		}
@@ -291,5 +291,13 @@ int32 join_4_bytes(byte Buffer[])
 }
 
 
-
+void print_imu_data()
+{
+	SerialUSB.print("roll:");
+	SerialUSB.print((float)(roll_sensor)/100);
+	SerialUSB.print("\tpitch:");
+	SerialUSB.print((float)(pitch_sensor)/100);
+	SerialUSB.print("\tground:");
+	SerialUSB.println((float)(ground_course)/100);
+}
 

@@ -15,7 +15,7 @@ void decode_gps(void);
 void IMU_join_data();
 void checksum(byte data);
 void wait_for_data(byte many);
-
+void print_imu_data();
 
 // From defines.h in ardupilot 2.5
 // GPS flags
