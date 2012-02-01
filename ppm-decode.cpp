@@ -13,59 +13,63 @@
 #include "utils.h"
 #include "yaw-servo.h"
 
-//number of captures to do by dma
-#define TIMERS 9
-
-// timer prescale
-#define TIMER_PRESCALE 26
-
-// TIMER_PRESCALE*(1/72 MHz) =
-#define TICK_PERIOD ( TIMER_PRESCALE*0.0000138888889f )
-
 HardwareTimer timer4(4);// = HardwareTimer(4);
 timer_dev *t = TIMER4;
 timer_reg_map r = TIMER4->regs;
 
 
 volatile int dma_data_captured=0;            //set to 1 when dma complete.
-volatile uint16 data[TIMERS];   //place to put the data via dma
+volatile uint16 data[NUM_TIMERS];   //place to put the data via dma
+uint16 rx_channels[TX_NUM_CHANNELS];
 uint16 delta=0;
 uint16 ppm_timeout=0;
 int do_print=1;
 
 //dump routine to show content of captured data.
 void printData(){
-	float duty;
-	for(int i=0; i<TIMERS; i++){
-
-		if(ppm_timeout==1){
-
-			if(do_print==1)
-			{
-				SerialUSB.println("PPM timeout!");
-				do_print=0; // print only once for each timeout
-			}
-			return;
-		}
-
-		if(i>0) delta = data[i]-data[i-1];
-		else delta = data[i] - data[TIMERS-1];
-
-		duty=(delta)*TICK_PERIOD;
-
-		SerialUSB.print(delta);
-		SerialUSB.print(":(");
-		SerialUSB.print(duty);
-		SerialUSB.print(")");
-		if ((i+1)%9==0)	SerialUSB.print("\r");
-		else SerialUSB.print("\t");
+//	float duty;
+//	for(int i=0; i<NUM_TIMERS; i++){
+//
+//		if(ppm_timeout==1){
+//
+//			if(do_print==1)
+//			{
+//				SerialUSB.println("PPM timeout!");
+//				do_print=0; // print only once for each timeout
+//			}
+//			return;
+//		}
+//
+//		if(i>0) delta = data[i]-data[i-1];
+//		else delta = data[i];// - data[NUM_TIMERS-1];
+//
+//		duty=(delta)*TICK_PERIOD;
+//
+//		SerialUSB.print(delta);
+//		SerialUSB.print(":(");
+//		SerialUSB.print(duty);
+//		SerialUSB.print(")");
+//		if ((i+1)%NUM_TIMERS==0)	SerialUSB.print("\r");
+//		else SerialUSB.print("\t");
+//	}
+	for(int i=0; i<TX_NUM_CHANNELS;i++)
+	{
+		SerialUSB.print("CH");
+		SerialUSB.print(i);
+		SerialUSB.print(":");
+		SerialUSB.print(rx_channels[i]);
+		SerialUSB.print("\t");
 	}
+
 	SerialUSB.println();
 }
 
 //invoked as configured by the DMA mode flags.
 void dma_isr()
 {
+	int i;
+	static int sync_pulse = -1;
+
 	dma_irq_cause cause = dma_get_irq_cause(DMA1, DMA_CH1);
         //using serialusb to print messages here is nice, but
         //it takes so long, we may never exit this isr invocation
@@ -77,23 +81,43 @@ void dma_isr()
 	{
 		case DMA_TRANSFER_COMPLETE:
 			// Transfer completed
-                        //SerialUSB.println("DMA Complete");
-                        dma_data_captured=1;
+			//SerialUSB.println("DMA Complete");
+			if(sync_pulse < 0) {
+
+				for(i=0;i<NUM_TIMERS;i++)
+					if(data[i] > SYNC_PULSE_MINIMUM)
+						sync_pulse=i;
+
+			}
+			// TODO: implement error handling for sync_pulse
+			//if(sync_pulse < 0)
+				// error!
+
+			for(i=0;i<TX_NUM_CHANNELS;i++)
+			{
+				rx_channels[i] = data[(sync_pulse+i)%TX_NUM_CHANNELS];
+			}
+
+			dma_data_captured=1;
+
 			break;
+
 		case DMA_TRANSFER_HALF_COMPLETE:
 			// Transfer is half complete
-                        SerialUSB.println("DMA Half Complete");
+			SerialUSB.println("DMA Half Complete");
 			break;
+
 		case DMA_TRANSFER_ERROR:
 			// An error occurred during transfer
-                        SerialUSB.println("DMA Error");
-                        dma_data_captured=1;
+			SerialUSB.println("DMA Error");
+			dma_data_captured=1;
 			break;
+
 		default:
 			// Something went horribly wrong.
 			// Should never happen.
-                        SerialUSB.println("DMA WTF");
-                        dma_data_captured=1;
+			SerialUSB.println("DMA WTF");
+			dma_data_captured=1;
 			break;
 	}
 
@@ -212,7 +236,7 @@ void init_ppm_dma_transfer()
                         );
 
     dma_attach_interrupt(DMA1, DMA_CH1, dma_isr); //hook up an isr for the dma chan to tell us if things happen.
-    dma_set_num_transfers(DMA1, DMA_CH1, TIMERS); //only allow it to transfer TIMERS number of times.
+    dma_set_num_transfers(DMA1, DMA_CH1, NUM_TIMERS); //only allow it to transfer TIMERS number of times.
     dma_enable(DMA1, DMA_CH1);                    //enable it..
 
 
