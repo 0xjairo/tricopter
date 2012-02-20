@@ -23,22 +23,27 @@ volatile uint16 data[NUM_TIMERS];   //place to put the data via dma
 uint16 rx_channels[TX_NUM_CHANNELS];
 uint16 delta=0;
 uint16 ppm_timeout=0;
-int do_print=1;
+int do_print_timeout_once=1;
 
 //dump routine to show content of captured data.
-void printData(){
-//	float duty;
+int printData(){
+	static int sync_pulse = -1;
+	float duty;
+	int i, j;
+	uint16 delta;
+
 //	for(int i=0; i<NUM_TIMERS; i++){
 //
-//		if(ppm_timeout==1){
-//
-//			if(do_print==1)
-//			{
-//				SerialUSB.println("PPM timeout!");
-//				do_print=0; // print only once for each timeout
-//			}
-//			return;
-//		}
+		if(ppm_timeout==1){
+
+			if(do_print_timeout_once==1)
+			{
+				SerialUSB.println("PPM timeout!");
+				do_print_timeout_once=0; // print only once for each timeout
+				sync_pulse = -1;
+			}
+			return 1;
+		}
 //
 //		if(i>0) delta = data[i]-data[i-1];
 //		else delta = data[i];// - data[NUM_TIMERS-1];
@@ -52,23 +57,60 @@ void printData(){
 //		if ((i+1)%NUM_TIMERS==0)	SerialUSB.print("\r");
 //		else SerialUSB.print("\t");
 //	}
-	for(int i=0; i<TX_NUM_CHANNELS;i++)
+
+	if(sync_pulse < 0) {
+
+		for(i=0;i<NUM_TIMERS;i++)
+		{
+			if(i>0) 	delta = data[i]-data[i-1];
+			else		delta = data[i];
+
+			if(delta > SYNC_PULSE_MINIMUM)
+			{
+				sync_pulse=i;
+				SerialUSB.print("s:");
+				SerialUSB.print(sync_pulse);
+				SerialUSB.print("\tdelta:");
+				SerialUSB.print(delta);
+				SerialUSB.print("\tMinimum:");
+				SerialUSB.println(SYNC_PULSE_MINIMUM);
+			}
+		}
+
+	}
+	// TODO: implement error handling for sync_pulse
+	//if(sync_pulse < 0)
+		// error!
+
+	for(i=0;i<TX_NUM_CHANNELS;i++)
 	{
-		SerialUSB.print("CH");
+		j = (sync_pulse+1+i)%NUM_TIMERS;
+
+		if(j>0) 	delta = data[j]-data[j-1];
+		else 		delta = data[j];// - data[TIMERS-1];
+
+		rx_channels[i] = delta;
+	}
+
+
+	for(i=0; i<TX_NUM_CHANNELS;i++)
+	{
+		duty=(rx_channels[i])*TICK_PERIOD_MS;
+
 		SerialUSB.print(i);
 		SerialUSB.print(":");
-		SerialUSB.print(rx_channels[i]);
+		SerialUSB.print(duty);
 		SerialUSB.print("\t");
 	}
 
 	SerialUSB.println();
+
+	return 0;
 }
 
 //invoked as configured by the DMA mode flags.
 void dma_isr()
 {
-	int i;
-	static int sync_pulse = -1;
 
 	dma_irq_cause cause = dma_get_irq_cause(DMA1, DMA_CH1);
         //using serialusb to print messages here is nice, but
@@ -82,21 +124,7 @@ void dma_isr()
 		case DMA_TRANSFER_COMPLETE:
 			// Transfer completed
 			//SerialUSB.println("DMA Complete");
-			if(sync_pulse < 0) {
 
-				for(i=0;i<NUM_TIMERS;i++)
-					if(data[i] > SYNC_PULSE_MINIMUM)
-						sync_pulse=i;
-
-			}
-			// TODO: implement error handling for sync_pulse
-			//if(sync_pulse < 0)
-				// error!
-
-			for(i=0;i<TX_NUM_CHANNELS;i++)
-			{
-				rx_channels[i] = data[(sync_pulse+i)%TX_NUM_CHANNELS];
-			}
 
 			dma_data_captured=1;
 
@@ -248,11 +276,10 @@ void print_ppm_data()
 	//break busy wait if user input is available
 	while(!dma_data_captured && !SerialUSB.available());
 
-	do_print=1;
-	while(!SerialUSB.available())
+	do_print_timeout_once=1;
+	while(!SerialUSB.available() && !printData())
 	{
 	  //dump the data
-	  printData();
 	  delay(100);
 	}
 
