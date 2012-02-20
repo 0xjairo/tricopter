@@ -14,6 +14,10 @@
 #define SYNC_PULSE_MINIMUM (6.0f/TICK_PERIOD_MS)
 
 int printData();
+
+int rx_read_commands();
+void ppm_sync();
+
 void dma_isr();
 void ppm_timeout_isr();
 void ppm_decode_go();

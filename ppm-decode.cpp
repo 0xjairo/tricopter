@@ -1,9 +1,10 @@
-// Original code from http://pastebin.com/NQtbVCFh
+// Original TIMER/DMA code from http://pastebin.com/NQtbVCFh
 // Posted on the leaflabs.com forum by Dweller:
 // http://forums.leaflabs.com/topic.php?id=1170
 ///**********************************************************************
 // Various Maple tests.. including timer capture to memory via dma =)
 // */
+
 #include "main.h"
 #include "ppm-decode.h"
 #include "wirish.h"
@@ -20,67 +21,21 @@ timer_reg_map r = TIMER4->regs;
 
 volatile int dma_data_captured=0;            //set to 1 when dma complete.
 volatile uint16 data[NUM_TIMERS];   //place to put the data via dma
-uint16 rx_channels[TX_NUM_CHANNELS];
+float rx_channels[TX_NUM_CHANNELS];
 uint16 delta=0;
 uint16 ppm_timeout=0;
 int do_print_timeout_once=1;
+int sync_pulse = -1;
 
-//dump routine to show content of captured data.
-int printData(){
-	static int sync_pulse = -1;
+int rx_read_commands()
+{
+
 	float duty;
-	int i, j;
+	int i,j;
 	uint16 delta;
 
-//	for(int i=0; i<NUM_TIMERS; i++){
-//
-		if(ppm_timeout==1){
-
-			if(do_print_timeout_once==1)
-			{
-				SerialUSB.println("PPM timeout!");
-				do_print_timeout_once=0; // print only once for each timeout
-				sync_pulse = -1;
-			}
-			return 1;
-		}
-//
-//		if(i>0) delta = data[i]-data[i-1];
-//		else delta = data[i];// - data[NUM_TIMERS-1];
-//
-//		duty=(delta)*TICK_PERIOD;
-//
-//		SerialUSB.print(delta);
-//		SerialUSB.print(":(");
-//		SerialUSB.print(duty);
-//		SerialUSB.print(")");
-//		if ((i+1)%NUM_TIMERS==0)	SerialUSB.print("\r");
-//		else SerialUSB.print("\t");
-//	}
-
-	if(sync_pulse < 0) {
-
-		for(i=0;i<NUM_TIMERS;i++)
-		{
-			if(i>0) 	delta = data[i]-data[i-1];
-			else		delta = data[i];
-
-			if(delta > SYNC_PULSE_MINIMUM)
-			{
-				sync_pulse=i;
-				SerialUSB.print("s:");
-				SerialUSB.print(sync_pulse);
-				SerialUSB.print("\tdelta:");
-				SerialUSB.print(delta);
-				SerialUSB.print("\tMinimum:");
-				SerialUSB.println(SYNC_PULSE_MINIMUM);
-			}
-		}
-
-	}
-	// TODO: implement error handling for sync_pulse
-	//if(sync_pulse < 0)
-		// error!
+	if(sync_pulse < 0)
+		ppm_sync();
 
 	for(i=0;i<TX_NUM_CHANNELS;i++)
 	{
@@ -89,20 +44,68 @@ int printData(){
 		if(j>0) 	delta = data[j]-data[j-1];
 		else 		delta = data[j];// - data[TIMERS-1];
 
-		rx_channels[i] = delta;
+		duty=((float)(delta)*TICK_PERIOD_MS)-1.0;
+		duty = (duty-0.06)/(0.88-0.06);
+		if(duty < 0) duty = 0;
+		if(duty > 1) duty = 1;
+		rx_channels[i] = duty;
+	}
+
+	return 0;
+
+}
+
+void ppm_sync()
+{
+	int i;
+
+	for(i=0;i<NUM_TIMERS;i++)
+	{
+		if(i>0) 	delta = data[i]-data[i-1];
+		else		delta = data[i];
+
+		if(delta > SYNC_PULSE_MINIMUM)
+		{
+			sync_pulse=i;
+//			SerialUSB.print("s:");
+//			SerialUSB.print(sync_pulse);
+//			SerialUSB.print("\tdelta:");
+//			SerialUSB.print(delta);
+//			SerialUSB.print("\tMinimum:");
+//			SerialUSB.println(SYNC_PULSE_MINIMUM);
+		}
+	}
+
+	// TODO: implement error handling for sync_pulse
+	//if(sync_pulse < 0)
+	// 	error!
+
+
+}
+
+//dump routine to show content of captured data.
+int printData(){
+	int i;
+
+	if(ppm_timeout==1){
+
+		if(do_print_timeout_once==1)
+		{
+			SerialUSB.println("PPM timeout!");
+			do_print_timeout_once=0; // print only once for each timeout
+			sync_pulse = -1;
+		}
+		return 1;
 	}
 
 
 	for(i=0; i<TX_NUM_CHANNELS;i++)
 	{
-		duty=(rx_channels[i])*TICK_PERIOD_MS;
-
 		SerialUSB.print(i);
 		SerialUSB.print(":");
-		SerialUSB.print(duty);
+		SerialUSB.print(rx_channels[i]);
 		SerialUSB.print("\t");
 	}
-
 	SerialUSB.println();
 
 	return 0;
@@ -277,11 +280,12 @@ void print_ppm_data()
 	while(!dma_data_captured && !SerialUSB.available());
 
 	do_print_timeout_once=1;
-	while(!SerialUSB.available() && !printData())
+	do
 	{
 	  //dump the data
 	  delay(100);
-	}
+	  rx_read_commands();
+	} while(!SerialUSB.available() && !printData());
 
 
 }
