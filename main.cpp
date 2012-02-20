@@ -59,8 +59,10 @@ int main(void) {
     setup();
 
     while (1) {
-        toggleLED();
-        delay(20);
+    	toggleLED();
+		rx_read_commands();
+
+		delay(20);
 
         while (SerialUSB.available()) {
             uint8 input = SerialUSB.read();
