@@ -2,12 +2,10 @@
 // Posted on the leaflabs.com forum by Dweller:
 // http://forums.leaflabs.com/topic.php?id=1170
 ///**********************************************************************
-// Various Maple tests.. including timer capture to memory via dma =)
 // */
 
 #include "main.h"
 #include "ppm-decode.h"
-#include "wirish.h"
 #include "usb.h"
 #include "timer.h"
 #include "dma.h"
@@ -18,14 +16,60 @@ HardwareTimer timer4(4);// = HardwareTimer(4);
 timer_dev *t = TIMER4;
 timer_reg_map r = TIMER4->regs;
 
-
 volatile int dma_data_captured=0;            //set to 1 when dma complete.
 volatile uint16 data[NUM_TIMERS];   //place to put the data via dma
+float rx_channels_ms[TX_NUM_CHANNELS];
 float rx_channels[TX_NUM_CHANNELS];
 uint16 delta=0;
 uint16 ppm_timeout=0;
 int do_print_timeout_once=1;
 int sync_pulse = -1;
+rcCmd_t rcCmd;
+
+int rx_read(int *sp, rcCmd_t *rc)
+{
+
+	float duty;
+	int i,j;
+	uint16 delta;
+
+	// publish sync pulse and rcCmd
+	sp = &sync_pulse;
+	rc = &rcCmd;
+
+	if(sync_pulse == SP_INVALID)
+	{
+		ppm_sync();
+		return 1;
+	}
+
+	for(i=0;i<TX_NUM_CHANNELS;i++)
+	{
+		j = (sync_pulse+1+i)%NUM_TIMERS;
+
+		if(j>0) 	delta = data[j]-data[j-1];
+		else 		delta = data[j];// - data[TIMERS-1];
+
+		if(delta > CHANNEL_MAX_TICKS)
+		{
+			sync_pulse = SP_INVALID;
+			return 1;
+		}
+
+		rx_channels_ms[i] = (float)delta*TICK_PERIOD_MS;
+
+		duty=((float)(delta)*TICK_PERIOD_MS)-1.0;
+		duty = (duty-0.06)/(0.88-0.06);
+		if(duty < 0) duty = 0;
+		if(duty > 1) duty = 1;
+		*(float *)(&rcCmd+i) = duty;
+	}
+
+	return 0;
+
+}
+
+
 
 int rx_read_commands()
 {
@@ -34,8 +78,11 @@ int rx_read_commands()
 	int i,j;
 	uint16 delta;
 
-	if(sync_pulse < 0)
-		ppm_sync();
+//	if(sync_pulse_confidence < 3)
+//	{
+//		ppm_sync();
+//		return 1;
+//	}
 
 	for(i=0;i<TX_NUM_CHANNELS;i++)
 	{
@@ -43,6 +90,8 @@ int rx_read_commands()
 
 		if(j>0) 	delta = data[j]-data[j-1];
 		else 		delta = data[j];// - data[TIMERS-1];
+
+		rx_channels_ms[i] = (float)delta*TICK_PERIOD_MS;
 
 		duty=((float)(delta)*TICK_PERIOD_MS)-1.0;
 		duty = (duty-0.06)/(0.88-0.06);
@@ -57,29 +106,60 @@ int rx_read_commands()
 
 void ppm_sync()
 {
+#define VERBOSITY 4
 	int i;
+	int prev_sync_pulse;
+	static int temp_sync_pulse=-1;
+	static int sp_confidence=0;
+
+	// store previous sync pulse
+	// and reset temp
+	prev_sync_pulse = temp_sync_pulse;
+	temp_sync_pulse = -1;
+
+#ifdef VERBOSITY>3
+	SerialUSB.print("Printing Sync Pulse. sp confidence:");
+	SerialUSB.println(sp_confidence);
+	for(i=0;i<NUM_TIMERS;i++)
+	{
+		if(i>0) 	delta = data[i]-data[i-1];
+		else		delta = data[i];
+
+		SerialUSB.print(i);
+		SerialUSB.print(":");
+		SerialUSB.print(delta);
+		SerialUSB.print("\t");
+	}
+	SerialUSB.println("");
+#endif
 
 	for(i=0;i<NUM_TIMERS;i++)
 	{
 		if(i>0) 	delta = data[i]-data[i-1];
 		else		delta = data[i];
 
-		if(delta > SYNC_PULSE_MINIMUM)
+		if(delta > SYNC_PULSE_MIN_TICKS)
 		{
-			sync_pulse=i;
-//			SerialUSB.print("s:");
-//			SerialUSB.print(sync_pulse);
-//			SerialUSB.print("\tdelta:");
-//			SerialUSB.print(delta);
-//			SerialUSB.print("\tMinimum:");
-//			SerialUSB.println(SYNC_PULSE_MINIMUM);
+			temp_sync_pulse=i;
+			SerialUSB.print("s:");
+			SerialUSB.print(temp_sync_pulse);
+			SerialUSB.print("\tdelta:");
+			SerialUSB.print(delta);
+			SerialUSB.print("\tMinimum:");
+			SerialUSB.println(SYNC_PULSE_MIN_TICKS);
+			break;
 		}
 	}
 
-	// TODO: implement error handling for sync_pulse
-	//if(sync_pulse < 0)
-	// 	error!
+	// check temp sync pulse
+	if(temp_sync_pulse == prev_sync_pulse && temp_sync_pulse > -1)
+		sp_confidence++;
+	else
+		sp_confidence=0;
 
+	// save temp sp to sync_pulse
+	if(sp_confidence >= SP_CONFIDENCE_MINIMUM)
+		sync_pulse = temp_sync_pulse;
 
 }
 
@@ -103,7 +183,7 @@ int printData(){
 	{
 		SerialUSB.print(i);
 		SerialUSB.print(":");
-		SerialUSB.print(rx_channels[i]);
+		SerialUSB.print(rx_channels_ms[i]);
 		SerialUSB.print("\t");
 	}
 	SerialUSB.println();
