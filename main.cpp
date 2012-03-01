@@ -63,13 +63,13 @@ int main(void) {
 
     // init
     setup();
+    rc.init();
 
     toggleLED();
     delay(2000);
     SerialUSB.println("Starting....");
 
-    t_prev = 0;
-    t_1Hz = 0;
+    t_prev = 0; t_1Hz = 0;
     while (1) {
 
     	t = micros();
