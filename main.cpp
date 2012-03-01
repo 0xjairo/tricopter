@@ -79,10 +79,6 @@ int main(void) {
     	if(t_delta > 20000) {
     		t_prev = t;
 
-
-	//    	rx_fault = rx_read_commands();
-	//    	fault = rx_fault | ppm_timeout |(sync_pulse_confidence>3);
-
 			set_rotor_throttle(1, rc.get_channel( CH_THROTTLE ));
 			set_rotor_throttle(2, rc.get_channel( CH_THROTTLE ));
 			set_rotor_throttle(3, rc.get_channel( CH_THROTTLE ));
@@ -100,61 +96,6 @@ int main(void) {
 			}
 			t_1Hz++;
     	}
-
-//        while (SerialUSB.available()) {
-//            uint8 input = SerialUSB.read();
-//            SerialUSB.println((char)input);
-//
-//            switch(input) {
-//            case '\r':
-//                break;
-//
-//            case ' ':
-//                SerialUSB.println("spacebar, nice!");
-//                break;
-//
-//            case '?':
-//            	SerialUSB.println("no help available");
-//            	break;
-//
-//            case 'd':
-//            	print_ppm_data();
-//            	break;
-//
-//            case 'i':
-//            	/// imu data
-//            	imu_print_data();
-//            	break;
-//
-//            case 'h':
-//                cmd_print_help();
-//                break;
-//
-//            case 't':
-//                ppm_decode();
-//                break;
-//
-//            case 's':
-//                esc_manual_control();
-//                break;
-//
-//            case 'y':
-//            	yaw_manual_control();
-//            	break;
-//
-//            case 'b':
-//                cmd_board_info();
-//                break;
-//
-//            default: // -------------------------------
-//                SerialUSB.print("Unexpected byte: 0x");
-//                SerialUSB.print((int)input, HEX);
-//                SerialUSB.println(", press h for help.");
-//                break;
-//            }
-//
-//            SerialUSB.print("> ");
-//        }
     }
     return 0;
 }
