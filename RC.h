@@ -27,6 +27,7 @@ class RC {
 public:
 	RC();
 
+	void 	init();
 	void 	update();
 	void 	store_ppm_sum();
 	uint16 	status();

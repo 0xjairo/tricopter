@@ -8,10 +8,15 @@
 #include "RC.h"
 
 RC::RC() {
-	for(int i=0;i<9;i++) _ppm_sum[i]=0;
 
+	// initialize class members
+	for(int i=0;i<9;i++) _ppm_sum[i]=0;
 	_sp = -1;
 	_sync_error = ERROR_SYNC;
+
+}
+
+void RC::init() {
 
 	// ppm decode setup
 	init_ppm_timer_and_dma();
