@@ -9,8 +9,11 @@
 
 RC::RC() {
 
+	int i;
+
 	// initialize class members
-	for(int i=0;i<9;i++) _ppm_sum[i]=0;
+	for(i=0;i<9;i++) _ppm_sum[i]=0;
+//	for(i=0;i<8;i++) *(float *)(&_rcCmd+i) = 0.0;
 	_sp = -1;
 	_sync_error = ERROR_SYNC;
 
@@ -31,15 +34,20 @@ void RC::store_ppm_sum() {
 void RC::update() {
 
 	// read ppm sum data
-	rx_read(&_sp, &_rcCmd);
+	rx_read(&_sp, (float *)&_rcCmd);
+
+#ifdef VERBOSITY>3
+	SerialUSB.print("RC::update(): _sp:");
+	SerialUSB.println(_sp);
+#endif
 
 	if(_sp == SP_INVALID)
 		return;
 
-	_yaw = _rcCmd.yaw;
-	_pitch = _rcCmd.pitch;
-	_roll = _rcCmd.roll;
-	_throttle = _rcCmd.throttle;
+	_yaw = _rcCmd[3];
+	_pitch = _rcCmd[1];
+	_roll = _rcCmd[0];
+	_throttle = _rcCmd[2];
 
 }
 

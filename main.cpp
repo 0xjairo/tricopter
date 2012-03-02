@@ -79,19 +79,22 @@ int main(void) {
     	if(t_delta > 20000) {
     		t_prev = t;
 
-			set_rotor_throttle(1, rc.get_channel( CH_THROTTLE ));
+    		rc.update();
+
+    		set_rotor_throttle(1, rc.get_channel( CH_THROTTLE ));
 			set_rotor_throttle(2, rc.get_channel( CH_THROTTLE ));
 			set_rotor_throttle(3, rc.get_channel( CH_THROTTLE ));
 
 			// 1Hz loop
-			if(t_1Hz == 50)
+			if(t_1Hz % 50 == 0)
 			{
-				rc.update();
 
 				toggleLED();
-				printData();
+				//printData();
+				SerialUSB.print("throttle:");
+				SerialUSB.println(rc.get_channel( CH_THROTTLE ));
 
-				t_1Hz = 0;
+				SerialUSB.println("");
 
 			}
 			t_1Hz++;

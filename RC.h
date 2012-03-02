@@ -39,7 +39,7 @@ private:
 
 	// ppm-decode types and data
 	int 			_sp;
-	rcCmd_t 		_rcCmd;
+	float 		_rcCmd[8];
 
 	int 	_sync_error;
 

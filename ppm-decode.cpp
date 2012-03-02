@@ -24,18 +24,23 @@ uint16 delta=0;
 uint16 ppm_timeout=0;
 int do_print_timeout_once=1;
 int sync_pulse = -1;
-rcCmd_t rcCmd;
+//rcCmd_t rcCmd;
 
-int rx_read(int *sp, rcCmd_t *rc)
+int rx_read(int *sp, float *rc)
 {
 
 	float duty;
 	int i,j;
 	uint16 delta;
 
-	// publish sync pulse and rcCmd
-	sp = &sync_pulse;
-	rc = &rcCmd;
+
+	if(ppm_timeout == 1)
+	{
+		//TODO: On timeout, zero out commands
+		SerialUSB.println("ppm_timeout!");
+		sync_pulse == SP_INVALID;
+		return 1;
+	}
 
 	if(sync_pulse == SP_INVALID)
 	{
@@ -52,18 +57,28 @@ int rx_read(int *sp, rcCmd_t *rc)
 
 		if(delta > CHANNEL_MAX_TICKS)
 		{
+			SerialUSB.println("E!:MAX_TICKS!");
 			sync_pulse = SP_INVALID;
 			return 1;
 		}
 
 		rx_channels_ms[i] = (float)delta*TICK_PERIOD_MS;
 
-		duty=((float)(delta)*TICK_PERIOD_MS)-1.0;
+		duty= ((float)(delta)*TICK_PERIOD_MS)-1.0 ;
 		duty = (duty-0.06)/(0.88-0.06);
 		if(duty < 0) duty = 0;
 		if(duty > 1) duty = 1;
-		*(float *)(&rcCmd+i) = duty;
+//		*(float *)(&rcCmd+i) = duty;
+		*(float *)(rc+i) = (float)duty;
+#ifdef VERBOSITY>3
+		SerialUSB.print("duty:"); SerialUSB.print(duty);
+		SerialUSB.print("  i:"); SerialUSB.println(i);
+#endif
+
 	}
+
+	// publish sync pulse
+	*sp = sync_pulse;
 
 	return 0;
 
@@ -106,7 +121,7 @@ int rx_read_commands()
 
 void ppm_sync()
 {
-#define VERBOSITY 4
+//#define VERBOSITY 4
 	int i;
 	int prev_sync_pulse;
 	static int temp_sync_pulse=-1;
@@ -118,8 +133,8 @@ void ppm_sync()
 	temp_sync_pulse = -1;
 
 #ifdef VERBOSITY>3
-	SerialUSB.print("Printing Sync Pulse. sp confidence:");
-	SerialUSB.println(sp_confidence);
+	SerialUSB.print("ppm_sync: sync_pulse:");
+	SerialUSB.println(sync_pulse);
 	for(i=0;i<NUM_TIMERS;i++)
 	{
 		if(i>0) 	delta = data[i]-data[i-1];
@@ -141,15 +156,29 @@ void ppm_sync()
 		if(delta > SYNC_PULSE_MIN_TICKS)
 		{
 			temp_sync_pulse=i;
+#ifdef VERBOSITY>3
 			SerialUSB.print("s:");
 			SerialUSB.print(temp_sync_pulse);
 			SerialUSB.print("\tdelta:");
 			SerialUSB.print(delta);
 			SerialUSB.print("\tMinimum:");
 			SerialUSB.println(SYNC_PULSE_MIN_TICKS);
+#endif
 			break;
 		}
 	}
+
+#ifdef VERBOSITY>3
+
+	SerialUSB.print("ppm_sync: temp_sync_pulse:");
+	SerialUSB.println(temp_sync_pulse);
+
+	SerialUSB.print("ppm_sync: prev_sync_pulse:");
+	SerialUSB.println(prev_sync_pulse);
+
+	SerialUSB.print("ppm_sync: sp_confidence:");
+	SerialUSB.println(sp_confidence);
+#endif
 
 	// check temp sync pulse
 	if(temp_sync_pulse == prev_sync_pulse && temp_sync_pulse > -1)

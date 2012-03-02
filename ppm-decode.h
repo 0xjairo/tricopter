@@ -30,20 +30,20 @@
 
 // the order of the elements of rcCmd_t
 // determine the channel number of the command
-typedef struct {
-	float roll;
-	float pitch;
-	float throttle;
-	float yaw;
-	float aux1;
-	float aux2;
-	float aux3;
-	float aux4;
-} rcCmd_t;
+//typedef struct {
+//	float roll;
+//	float pitch;
+//	float throttle;
+//	float yaw;
+//	float aux1;
+//	float aux2;
+//	float aux3;
+//	float aux4;
+//} rcCmd_t;
 
 int 	printData();
 
-int 	rx_read(int *sync_pulse, rcCmd_t *rc);
+int 	rx_read(int *sync_pulse, float *rc);
 int 	rx_read_commands();
 void 	ppm_sync();
 
