@@ -28,9 +28,23 @@
 /* 3_RX  (pin 0 on Maple Mini) */
 #define IMU_RX_PIN BOARD_USART3_RX_PIN
 
+/*
+ * The PPM signal frequency is 50 Hz.
+ * The max count in the timer's register
+ * is 65536 (16-bit register).
+ * The MCU's clock is 72 MHz.
+ * Therefore the prescale factor is:
+ * 1/(50 Hz) * (72 MHz) / (65536) = 21.97
+ */
+#define SERVO_PPM_TIMER_PRESCALE_FACTOR 22
 
-/* min: 1ms in tick counts */
-#define PPM_MIN 3430
-/* max: 2ms in tick counts */
-#define PPM_MAX 6855
+/* min: 1ms
+ *   (1 ms * 72 Mhz)/ (PRESCALE_FACTOR)
+ * = (1 ms * 72 Mhz)/ 22
+ * =  3272.72 ticks
+ */
+#define PPM_MIN 3273
+
+/* max: 2ms =  6545.45 */
+#define PPM_MAX 6545
 

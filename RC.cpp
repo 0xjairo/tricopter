@@ -42,7 +42,10 @@ void RC::update() {
 #endif
 
 	if(_sp == SP_INVALID)
+	{
+		_throttle=0.0;
 		return;
+	}
 
 	_yaw = _rcCmd[3];
 	_pitch = _rcCmd[1];

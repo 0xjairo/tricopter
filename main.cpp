@@ -58,7 +58,7 @@ __attribute__((constructor)) void premain() {
 int main(void) {
 	int fault=0;
 	uint32 t, t_prev, t_delta;
-	uint32 t_1Hz;
+	uint32 tick50hz=0;
 	RC rc;
 
     // init
@@ -66,10 +66,8 @@ int main(void) {
     rc.init();
 
     toggleLED();
-    delay(2000);
-    SerialUSB.println("Starting....");
 
-    t_prev = 0; t_1Hz = 0;
+    t_prev = 0;
     while (1) {
 
     	t = micros();
@@ -85,19 +83,24 @@ int main(void) {
 			set_rotor_throttle(2, rc.get_channel( CH_THROTTLE ));
 			set_rotor_throttle(3, rc.get_channel( CH_THROTTLE ));
 
+			// 10Hz loop
+			if(tick50hz %  10 == 0)
+			{
+				toggleLED();
+			}
+
 			// 1Hz loop
-			if(t_1Hz % 50 == 0)
+			if(tick50hz % 50 == 0)
 			{
 
-				toggleLED();
-				//printData();
 				SerialUSB.print("throttle:");
 				SerialUSB.println(rc.get_channel( CH_THROTTLE ));
 
 				SerialUSB.println("");
 
 			}
-			t_1Hz++;
+
+			tick50hz++;
     	}
     }
     return 0;

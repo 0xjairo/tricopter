@@ -23,7 +23,7 @@ float rx_channels[TX_NUM_CHANNELS];
 uint16 delta=0;
 uint16 ppm_timeout=0;
 int do_print_timeout_once=1;
-int sync_pulse = -1;
+//int sync_pulse = -1;
 //rcCmd_t rcCmd;
 
 int rx_read(int *sp, float *rc)
@@ -32,21 +32,30 @@ int rx_read(int *sp, float *rc)
 	float duty;
 	int i,j;
 	uint16 delta;
+	int sync_pulse;
 
+	sync_pulse = *sp;
 
 	if(ppm_timeout == 1)
 	{
 		//TODO: On timeout, zero out commands
-		SerialUSB.println("ppm_timeout!");
-		sync_pulse == SP_INVALID;
+		if(do_print_timeout_once == 1)
+		{
+			SerialUSB.println("ppm_timeout!");
+			do_print_timeout_once=0;
+		}
+		*sp = SP_INVALID;
 		return 1;
 	}
 
 	if(sync_pulse == SP_INVALID)
 	{
-		ppm_sync();
+		ppm_sync(sp);
 		return 1;
 	}
+
+	// reset timeout print flag
+	do_print_timeout_once=1;
 
 	for(i=0;i<TX_NUM_CHANNELS;i++)
 	{
@@ -58,7 +67,7 @@ int rx_read(int *sp, float *rc)
 		if(delta > CHANNEL_MAX_TICKS)
 		{
 			SerialUSB.println("E!:MAX_TICKS!");
-			sync_pulse = SP_INVALID;
+			*sp = SP_INVALID;
 			return 1;
 		}
 
@@ -68,7 +77,6 @@ int rx_read(int *sp, float *rc)
 		duty = (duty-0.06)/(0.88-0.06);
 		if(duty < 0) duty = 0;
 		if(duty > 1) duty = 1;
-//		*(float *)(&rcCmd+i) = duty;
 		*(float *)(rc+i) = (float)duty;
 #ifdef VERBOSITY>3
 		SerialUSB.print("duty:"); SerialUSB.print(duty);
@@ -85,7 +93,7 @@ int rx_read(int *sp, float *rc)
 }
 
 
-
+#ifdef CLI_UTILS
 int rx_read_commands()
 {
 
@@ -118,8 +126,9 @@ int rx_read_commands()
 	return 0;
 
 }
+#endif
 
-void ppm_sync()
+void ppm_sync(int *sp)
 {
 //#define VERBOSITY 4
 	int i;
@@ -188,10 +197,11 @@ void ppm_sync()
 
 	// save temp sp to sync_pulse
 	if(sp_confidence >= SP_CONFIDENCE_MINIMUM)
-		sync_pulse = temp_sync_pulse;
+		*sp = temp_sync_pulse;
 
 }
 
+#ifdef CLI_UTILS
 //dump routine to show content of captured data.
 int printData(){
 	int i;
@@ -219,6 +229,7 @@ int printData(){
 
 	return 0;
 }
+#endif
 
 //invoked as configured by the DMA mode flags.
 void dma_isr()
@@ -382,6 +393,7 @@ void init_ppm_dma_transfer()
 
 }
 
+#ifdef CLI_UTILS
 void print_ppm_data()
 {
 	//busy wait on the dma_data_captured flag
@@ -398,6 +410,7 @@ void print_ppm_data()
 
 
 }
+#endif
 
 void ppm_decode_go()
 {
@@ -413,6 +426,7 @@ void ppm_decode_go()
 
 }
 
+#ifdef CLI_UTILS
 void ppm_decode(void){
     SerialUSB.println("Decoding DIY Drones PPM encoder on pin D27");
 
@@ -475,3 +489,5 @@ void ppm_decode(void){
     SerialUSB.println("Done!");
 
 }
+#endif
+

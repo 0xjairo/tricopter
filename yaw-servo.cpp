@@ -14,7 +14,7 @@ HardwareTimer timer2(2);
 void yaw_servo_init()
 {
 	timer2.setMode(TIMER_CH4, TIMER_PWM);
-	timer2.setPrescaleFactor(21);
+	timer2.setPrescaleFactor(SERVO_PPM_TIMER_PRESCALE_FACTOR);
 
 	set_servo_angle(0.0);
 

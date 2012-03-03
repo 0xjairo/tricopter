@@ -18,7 +18,7 @@ void esc_init()
 	timer1.setMode(TIMER_CH1, TIMER_PWM);
 	timer1.setMode(TIMER_CH2, TIMER_PWM);
 	timer1.setMode(TIMER_CH3, TIMER_PWM);
-	timer1.setPrescaleFactor(21);
+	timer1.setPrescaleFactor(SERVO_PPM_TIMER_PRESCALE_FACTOR);
 
 	// Set throttle to minimum
 	for(int i=0;i<3;i++)
@@ -71,6 +71,7 @@ void set_rotor_throttle(int rotor, float rate)
 
 }
 
+#ifdef CLI_UTILS
 void esc_manual_control(void) {
     SerialUSB.println("Press \'j\' to lower speed.");
     SerialUSB.println("Press \'k\' to increase speed.");
@@ -115,4 +116,4 @@ void esc_manual_control(void) {
     set_rotor_throttle(3, 0.0);
 
 }
-
+#endif

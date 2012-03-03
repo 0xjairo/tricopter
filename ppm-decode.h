@@ -45,7 +45,7 @@ int 	printData();
 
 int 	rx_read(int *sync_pulse, float *rc);
 int 	rx_read_commands();
-void 	ppm_sync();
+void 	ppm_sync(int *sp);
 
 void 	dma_isr();
 void 	ppm_timeout_isr();
