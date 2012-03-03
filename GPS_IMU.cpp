@@ -1,3 +1,6 @@
+// code from the ArduPilot 2.6 project:
+// http://code.google.com/p/ardupilot/source/browse/GPS_IMU.pde?name=Ardupilot_2_6
+
 #include "GPS_IMU.h"
 #include "wirish.h"
 
@@ -108,7 +111,7 @@ void decode_gps(void)
 	static byte IMU_step = 0;
 	int numc = 0;
 	byte data;
-	int message_num;
+	static byte message_num = 0;
 
 	numc = Serial3.available();
 	if (numc > 0)
@@ -203,9 +206,10 @@ void decode_gps(void)
 //						GPS_timer = DIYmillis();
 //					} else if (message_num == 0x0a) {
 //						PERF_join_data();
-					} else {
+					}
+					else {
 						SerialUSB.print("Invalid message number = ");
-						SerialUSB.println(message_num,DEC);
+						SerialUSB.println(message_num,HEX);
 					}
 				} else {
 					//SerialUSB.println("Checksum error");	//bad checksum
@@ -293,11 +297,11 @@ int32 join_4_bytes(byte Buffer[])
 
 void print_imu_data()
 {
-	SerialUSB.print("roll:");
+	SerialUSB.print("  roll:");
 	SerialUSB.print((float)(roll_sensor)/100);
-	SerialUSB.print("\tpitch:");
+	SerialUSB.print("  pitch:");
 	SerialUSB.print((float)(pitch_sensor)/100);
-	SerialUSB.print("\tground:");
-	SerialUSB.println((float)(ground_course)/100);
+	SerialUSB.print("  yaw:");
+	SerialUSB.print((float)(ground_course)/100);
 }
 
