@@ -7,6 +7,7 @@
 #include "ppm-decode.h"
 #include "imu-interface.h"
 #include "yaw-servo.h"
+#include "GPS_IMU.h"
 
 #include "RC.h"
 
@@ -56,8 +57,9 @@ __attribute__((constructor)) void premain() {
 }
 
 int main(void) {
-	int fault=0;
-	uint32 t, t_prev, t_delta;
+	uint32 t;
+	uint32 t_prev, t_delta;
+	uint32 cpu_util, cpu_util2;
 	uint32 tick50hz=0;
 	RC rc;
 
@@ -78,25 +80,53 @@ int main(void) {
     		t_prev = t;
 
     		rc.update();
+    		decode_gps();
 
     		set_rotor_throttle(1, rc.get_channel( CH_THROTTLE ));
 			set_rotor_throttle(2, rc.get_channel( CH_THROTTLE ));
 			set_rotor_throttle(3, rc.get_channel( CH_THROTTLE ));
 
 			// 10Hz loop
-			if(tick50hz %  10 == 0)
+			if(tick50hz %  5 == 0)
 			{
 				toggleLED();
 			}
 
-			// 1Hz loop
-			if(tick50hz % 50 == 0)
+			// 2Hz loop
+			if(tick50hz % 25 == 0)
 			{
+				// cpu utilization based on the 2000 microseconds (50 Hz) loop
+				cpu_util = (micros()-t)*100/t_delta;
 
-				SerialUSB.print("throttle:");
-				SerialUSB.println(rc.get_channel( CH_THROTTLE ));
+				/*
+				 * Safe Print
+				 * ----------
+				 *
+				 * <http://leaflabs.com/docs/lang/api/serialusb.html>
+			     * If this logic fails to detect if bytes are going to be read
+			     * by the USB host, then the println() take a long time,
+			     * causing a very slow LED blink.  If the characters are
+			     * printed and read, the blink will only slow a small amount
+			     * when "really" connected, and will be fast fast when the
+			     * virtual port is only configured.
+			     *
+			     */
+				if(SerialUSB.isConnected() && (SerialUSB.getDTR() || SerialUSB.getRTS() ) )
+				{
+					SerialUSB.print("thr::");
+					SerialUSB.print(rc.get_channel( CH_THROTTLE ));
+					SerialUSB.print("  rc:");
+					SerialUSB.print(rc.status());
+					SerialUSB.print("  util:");
+					SerialUSB.print(cpu_util);
+					print_imu_data();
+					SerialUSB.print("  util2:");
+					// cpu utilization after printing data
+					cpu_util2 = (micros()-t)*100/t_delta;
+					SerialUSB.print(cpu_util2);
 
-				SerialUSB.println("");
+					SerialUSB.println("");
+				}
 
 			}
 
