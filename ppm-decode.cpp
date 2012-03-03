@@ -22,9 +22,6 @@ float rx_channels_ms[TX_NUM_CHANNELS];
 float rx_channels[TX_NUM_CHANNELS];
 uint16 delta=0;
 uint16 ppm_timeout=0;
-int do_print_timeout_once=1;
-//int sync_pulse = -1;
-//rcCmd_t rcCmd;
 
 int rx_read(int *sp, float *rc)
 {
@@ -38,12 +35,6 @@ int rx_read(int *sp, float *rc)
 
 	if(ppm_timeout == 1)
 	{
-		//TODO: On timeout, zero out commands
-		if(do_print_timeout_once == 1)
-		{
-			SerialUSB.println("ppm_timeout!");
-			do_print_timeout_once=0;
-		}
 		*sp = SP_INVALID;
 		return 1;
 	}
@@ -53,9 +44,6 @@ int rx_read(int *sp, float *rc)
 		ppm_sync(sp);
 		return 1;
 	}
-
-	// reset timeout print flag
-	do_print_timeout_once=1;
 
 	for(i=0;i<TX_NUM_CHANNELS;i++)
 	{
