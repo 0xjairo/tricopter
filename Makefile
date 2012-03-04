@@ -30,7 +30,6 @@ SRCS=	main.cpp \
 		utils.cpp \
 		esc-control.cpp \
 		ppm-decode.cpp \
-		imu-interface.cpp \
 		yaw-servo.cpp \
 		GPS_IMU.cpp \
 		RC.cpp \
