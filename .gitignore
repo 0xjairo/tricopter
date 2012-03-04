@@ -1,1 +1,9 @@
 *.swp
+screenlog.0
+build/*
+doc/*
+libmaple/*
+libraries/*
+support/*
+wirish/*
+Parameters.h
