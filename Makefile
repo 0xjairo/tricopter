@@ -33,7 +33,8 @@ SRCS=	main.cpp \
 		imu-interface.cpp \
 		yaw-servo.cpp \
 		GPS_IMU.cpp \
-		RC.cpp
+		RC.cpp \
+		AHRS.cpp
 
 INCLUDES=${SRCS:.cpp=.h}  
 OBJS=$(addprefix $(APP_OBJ_PATH)/, $(SRCS:.cpp=.o))
