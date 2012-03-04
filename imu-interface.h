@@ -10,6 +10,6 @@
 
 void imu_interface_init();
 void imu_print_data();
-
+void imu_update();
 
 #endif /* IMU_INTERFACE_H_ */

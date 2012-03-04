@@ -1,19 +1,8 @@
+#include "wirish.h"
 #include "utils.h"
 
 
 static uint16 init_all_timers_prescale;
-
-
-void cmd_print_help(void) {
-    SerialUSB.println("");
-    SerialUSB.println("Command Listing");
-    SerialUSB.println("\t?: print this menu");
-    SerialUSB.println("\tb: print information about the board.");
-    SerialUSB.println("\ts: servo sweep on pin D16.");
-    SerialUSB.println("\tt: ppm decode on pin D15.");
-}
-
-
 
 void set_prescale(timer_dev *dev) {
     timer_set_prescaler(dev, init_all_timers_prescale);
@@ -84,4 +73,24 @@ void cmd_board_info(void) {     // TODO print more information
 }
 
 
+void delimiter() {
+	SerialUSB.print(" ");
+}
 
+void printkv(const char *k, float v) {
+	SerialUSB.print(k);
+	SerialUSB.print(v);
+	delimiter();
+}
+
+void printkv(const char *k, int v){
+	SerialUSB.print(k);
+	SerialUSB.print(v);
+	delimiter();
+}
+
+void printkv(const char *k, unsigned int v) {
+	SerialUSB.print(k);
+	SerialUSB.print(v);
+	delimiter();
+}

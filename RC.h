@@ -31,6 +31,7 @@ public:
 	void 	update();
 	void 	store_ppm_sum();
 	uint16 	status();
+	uint16  isOK();
 	float 	get_channel(int channel);
 	int 	get_sync_pulse();
 

@@ -235,7 +235,7 @@ void decode_gps(void)
 		if(GPS_fix != FAILED_GPS){
 			GPS_fix = BAD_GPS;
 		}
-		GPS_update = GPS_NONE;
+		GPS_update &= ~GPS_BOTH; // clear GPS Position and GPS Heading (bits 0 and 1)
 
 		if((millis() - GPS_timer) > 10000){
 			invalid_location = true;
@@ -303,5 +303,16 @@ void print_imu_data()
 	SerialUSB.print((float)(pitch_sensor)/100);
 	SerialUSB.print("  yaw:");
 	SerialUSB.print((float)(ground_course)/100);
+	SerialUSB.print("  stat:");
+	SerialUSB.print(GPS_update);
 }
+
+void get_imu_data(float *roll, float *pitch, float *yaw, byte *status)
+{
+	*roll = (float)(roll_sensor)/100;
+	*pitch = (float)(pitch_sensor)/100;
+	*yaw = (float)(ground_course)/100;
+	*status = GPS_update;
+}
+
 

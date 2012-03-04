@@ -1,16 +1,14 @@
-
 // Include files
 #include "main.h"
 #include "wirish.h"
 #include "utils.h"
 #include "esc-control.h"
 #include "ppm-decode.h"
-#include "imu-interface.h"
 #include "yaw-servo.h"
 #include "GPS_IMU.h"
 
 #include "RC.h"
-
+#include "AHRS.h"
 
 // ASCII escape character
 #define ESC       ((uint8)27)
@@ -20,6 +18,7 @@ extern uint16 ppm_timeout;
 extern int sync_pulse_confidence;
 
 // -- setup() and loop() ------------------------------------------------------
+
 
 void setup() {
 
@@ -40,9 +39,6 @@ void setup() {
     // yaw servo init
     yaw_servo_init();
 
-	// imu interface init
-	imu_interface_init();
-
     // initialize usb
     SerialUSB.begin();
 //    while(!isConnected()); //wait till console attaches.
@@ -61,10 +57,14 @@ int main(void) {
 	uint32 t_prev, t_delta;
 	uint32 cpu_util, cpu_util2;
 	uint32 tick50hz=0;
+	float error;
+
 	RC rc;
+	AHRS ahrs;
 
     // init
     setup();
+    ahrs.init();
     rc.init();
 
     toggleLED();
@@ -79,8 +79,10 @@ int main(void) {
     	if(t_delta > 20000) {
     		t_prev = t;
 
-    		rc.update();
-    		decode_gps();
+    		rc.update();  // update RC commands
+    		ahrs.update();
+
+    		error = rc.get_channel( CH_THROTTLE );
 
     		set_rotor_throttle(1, rc.get_channel( CH_THROTTLE ));
 			set_rotor_throttle(2, rc.get_channel( CH_THROTTLE ));
@@ -111,19 +113,20 @@ int main(void) {
 			     * virtual port is only configured.
 			     *
 			     */
-				if(SerialUSB.isConnected() && (SerialUSB.getDTR() || SerialUSB.getRTS() ) )
+				if( isConnected())
 				{
-					SerialUSB.print("thr::");
-					SerialUSB.print(rc.get_channel( CH_THROTTLE ));
-					SerialUSB.print("  rc:");
-					SerialUSB.print(rc.status());
-					SerialUSB.print("  util:");
-					SerialUSB.print(cpu_util);
-					print_imu_data();
-					SerialUSB.print("  util2:");
+					printkv("rc:", ! rc.status());
+					printkv("imu:", ahrs.get_status());
+
+					printkv("  thr:", rc.get_channel( CH_THROTTLE));
+					printkv("roll:", ahrs.get_roll());
+					printkv("pitch:", ahrs.get_pitch());
+					printkv("yaw:", ahrs.get_yaw());
+
 					// cpu utilization after printing data
+					printkv("  util:", cpu_util);
 					cpu_util2 = (micros()-t)*100/t_delta;
-					SerialUSB.print(cpu_util2);
+					printkv("util2:",cpu_util2);
 
 					SerialUSB.println("");
 				}

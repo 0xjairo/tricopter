@@ -1,3 +1,4 @@
+#define DEBUG_LEVEL DEBUG_NONE
 /*
  * Rotor definitions on tricopter
  * Note that motor 3 is the tail rotor

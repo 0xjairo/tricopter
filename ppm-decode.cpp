@@ -66,7 +66,7 @@ int rx_read(int *sp, float *rc)
 		if(duty < 0) duty = 0;
 		if(duty > 1) duty = 1;
 		*(float *)(rc+i) = (float)duty;
-#ifdef VERBOSITY>3
+#if VERBOSITY>3
 		SerialUSB.print("duty:"); SerialUSB.print(duty);
 		SerialUSB.print("  i:"); SerialUSB.println(i);
 #endif
@@ -129,7 +129,7 @@ void ppm_sync(int *sp)
 	prev_sync_pulse = temp_sync_pulse;
 	temp_sync_pulse = -1;
 
-#ifdef VERBOSITY>3
+#if VERBOSITY>3
 	SerialUSB.print("ppm_sync: sync_pulse:");
 	SerialUSB.println(sync_pulse);
 	for(i=0;i<NUM_TIMERS;i++)
@@ -153,7 +153,7 @@ void ppm_sync(int *sp)
 		if(delta > SYNC_PULSE_MIN_TICKS)
 		{
 			temp_sync_pulse=i;
-#ifdef VERBOSITY>3
+#if VERBOSITY>3
 			SerialUSB.print("s:");
 			SerialUSB.print(temp_sync_pulse);
 			SerialUSB.print("\tdelta:");
@@ -165,7 +165,7 @@ void ppm_sync(int *sp)
 		}
 	}
 
-#ifdef VERBOSITY>3
+#if VERBOSITY>3
 
 	SerialUSB.print("ppm_sync: temp_sync_pulse:");
 	SerialUSB.println(temp_sync_pulse);

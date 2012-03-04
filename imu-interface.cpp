@@ -8,6 +8,10 @@
 #include "imu-interface.h"
 #include "GPS_IMU.h"
 
+void imu_update()
+{
+	decode_gps(); // decode IMU data
+}
 
 void imu_interface_init()
 {

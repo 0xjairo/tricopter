@@ -36,7 +36,7 @@ void RC::update() {
 	// read ppm sum data
 	rx_read(&_sp, (float *)&_rcCmd);
 
-#ifdef VERBOSITY>3
+#if VERBOSITY>3
 	SerialUSB.print("RC::update(): _sp:");
 	SerialUSB.println(_sp);
 #endif
@@ -52,6 +52,10 @@ void RC::update() {
 	_roll = _rcCmd[0];
 	_throttle = _rcCmd[2];
 
+}
+
+uint16 RC::isOK() {
+	return ! status();
 }
 
 uint16 RC::status() {
@@ -82,6 +86,8 @@ float RC::get_channel(int channel) {
 		return _yaw;
 
 	}
+
+	return -999.9;
 }
 
 
