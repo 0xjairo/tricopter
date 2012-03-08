@@ -1,9 +1,5 @@
 *.swp
 screenlog.0
-build/*
-doc/*
 libmaple/*
-libraries/*
-support/*
-wirish/*
+build/
 Parameters.h
