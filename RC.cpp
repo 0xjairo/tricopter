@@ -13,7 +13,6 @@ RC::RC() {
 
 	// initialize class members
 	for(i=0;i<9;i++) _ppm_sum[i]=0;
-//	for(i=0;i<8;i++) *(float *)(&_rcCmd+i) = 0.0;
 	_sp = -1;
 	_sync_error = ERROR_SYNC;
 
@@ -51,6 +50,10 @@ void RC::update() {
 	_pitch = _rcCmd[1];
 	_roll = _rcCmd[0];
 	_throttle = _rcCmd[2];
+	_aux1 = _rcCmd[4];
+	_aux2 = _rcCmd[5];
+	_aux3 = _rcCmd[6];
+	_aux4 = _rcCmd[7];
 
 }
 
@@ -85,6 +88,17 @@ float RC::get_channel(int channel) {
 	case CH_YAW:
 		return _yaw;
 
+	case CH_AUX1:
+		return _aux1;
+
+	case CH_AUX2:
+		return _aux2;
+
+	case CH_AUX3:
+		return _aux3;
+
+	case CH_AUX4:
+		return _aux4;
 	}
 
 	return -999.9;

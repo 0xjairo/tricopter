@@ -15,6 +15,10 @@
 #define CH_PITCH 2
 #define CH_THROTTLE 3
 #define CH_YAW 4
+#define CH_AUX1 5
+#define CH_AUX2 6
+#define CH_AUX3 7
+#define CH_AUX4 8
 
 #define CH_INVALID 0.0
 #define ERROR_SYNC_PULSE -1
@@ -48,6 +52,10 @@ private:
 	float 	_pitch;
 	float 	_yaw;
 	float 	_roll;
+	float 	_aux1;
+	float 	_aux2;
+	float 	_aux3;
+	float 	_aux4;
 };
 
 #endif /* RC_H_ */

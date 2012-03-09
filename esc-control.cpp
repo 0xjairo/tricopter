@@ -49,7 +49,11 @@ void set_rotor_throttle(int rotor, float rate)
 		return;
 	}
 
-	if(rate < 0 || rate > 1) return;
+	if(rate < 0)
+		rate = 0.0;
+
+	if(rate > 1)
+		rate = 1.0;
 
 	// 1.00ms = 3430counts = 0% (0deg)
 	// 1.25ms = 4096counts =

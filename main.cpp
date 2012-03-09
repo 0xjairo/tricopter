@@ -57,7 +57,8 @@ int main(void) {
 	uint32 t_prev, t_delta;
 	uint32 cpu_util, cpu_util2;
 	uint32 tick50hz=0;
-	float error;
+	float errorRoll, desiredRoll, KpRoll;
+	float m1, m2, m3;
 
 	RC rc;
 	AHRS ahrs;
@@ -82,11 +83,24 @@ int main(void) {
     		rc.update();  // update RC commands
     		ahrs.update();
 
-    		error = rc.get_channel( CH_THROTTLE );
+    		desiredRoll = 50*2*(rc.get_channel( CH_ROLL )-0.5);
+    		errorRoll = desiredRoll - ahrs.get_roll();
+    		KpRoll = rc.get_channel( CH_AUX1 )*-0.1;
 
-    		set_rotor_throttle(1, rc.get_channel( CH_THROTTLE ));
-			set_rotor_throttle(2, rc.get_channel( CH_THROTTLE ));
-			set_rotor_throttle(3, rc.get_channel( CH_THROTTLE ));
+    		if(rc.get_channel(CH_AUX4) < 0.5 )
+    		{
+				m1 = rc.get_channel( CH_THROTTLE ) + (-1)*KpRoll*errorRoll;
+				m2 = rc.get_channel( CH_THROTTLE ) + (+1)*KpRoll*errorRoll;
+				m3 = 0.0;
+    		} else {
+    			m1 = 0.0;
+    			m2 = 0.0;
+    			m3 = 0.0;
+    		}
+
+    		set_rotor_throttle( 1, m1 );
+			set_rotor_throttle( 2, m2 );
+			set_rotor_throttle( 3, m2 );
 
 			// 10Hz loop
 			if(tick50hz %  5 == 0)
@@ -95,7 +109,8 @@ int main(void) {
 			}
 
 			// 2Hz loop
-			if(tick50hz % 25 == 0)
+//			if(tick50hz % 25 == 0)
+			if(tick50hz % 5 == 0) // 10 hz
 			{
 				// cpu utilization based on the 2000 microseconds (50 Hz) loop
 				cpu_util = (micros()-t)*100/t_delta;
@@ -117,16 +132,21 @@ int main(void) {
 				{
 					printkv("rc:", ! rc.status());
 					printkv("imu:", ahrs.get_status());
+					printkv("aux1:", rc.get_channel(CH_AUX1));
+					printkv("kp:", KpRoll);
+					printkv("dRoll:", desiredRoll);
+					printkv("m1:", m1);
+					printkv("m2:", m2);
 
-					printkv("  thr:", rc.get_channel( CH_THROTTLE));
+					printkv("thr:", rc.get_channel( CH_THROTTLE));
 					printkv("roll:", ahrs.get_roll());
 					printkv("pitch:", ahrs.get_pitch());
 					printkv("yaw:", ahrs.get_yaw());
 
 					// cpu utilization after printing data
-					printkv("  util:", cpu_util);
-					cpu_util2 = (micros()-t)*100/t_delta;
-					printkv("util2:",cpu_util2);
+//					printkv("  util:", cpu_util);
+//					cpu_util2 = (micros()-t)*100/t_delta;
+//					printkv("util2:",cpu_util2);
 
 					SerialUSB.println("");
 				}

@@ -268,7 +268,12 @@ void IMU_join_data()
 	intUnion.byte[1] = IMU_buffer[j++];
 	ground_course = intUnion.word;
 
+	// clear error
+	GPS_update &= ~GPS_IMU_ERROR;
+
+	// set bit
 	GPS_update |= GPS_IMU;
+
 }
 
 

@@ -5,5 +5,7 @@ if [ -e $SCREENLOG_FILE ]; then
     rm screenlog.0
 fi
 
-screen -L /dev/ttyACM0
+if [ -e /dev/ttyACM0 ]; then
+    screen -L /dev/ttyACM0
+fi
 
