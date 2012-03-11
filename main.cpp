@@ -54,11 +54,24 @@ __attribute__((constructor)) void premain() {
 
 int main(void) {
 	uint32 t;
-	uint32 t_prev, t_delta;
+	uint32 t_prev, dt;
 	uint32 cpu_util, cpu_util2;
 	uint32 tick50hz=0;
-	float errorRoll, desiredRoll, KpRoll;
+	float errorRoll, uRoll, last_errorRoll;
+	float KpRoll, KiRoll, KdRoll;
+	float pRoll, iRoll, dRoll;
 	float m1, m2, m3;
+	float derivative, last_derivative;
+
+	/// Low pass filter cut frequency for derivative calculation.
+	///
+	static const float filter = 7.9577e-3; // Set to  "1 / ( 2 * PI * f_cut )";
+	// Examples for _filter:
+	// f_cut = 10 Hz -> _filter = 15.9155e-3
+	// f_cut = 15 Hz -> _filter = 10.6103e-3
+	// f_cut = 20 Hz -> _filter =  7.9577e-3
+	// f_cut = 25 Hz -> _filter =  6.3662e-3
+	// f_cut = 30 Hz -> _filter =  5.3052e-3
 
 	RC rc;
 	AHRS ahrs;
@@ -70,37 +83,85 @@ int main(void) {
 
     toggleLED();
 
+//    while(rc.status() != SUCCESS || rc.get_channel(CH_THROTTLE) > 0.2) {
+//    	rc.update();
+//    	delay_us(1000);
+//    	toggleLED();
+//    }
+
     t_prev = 0;
+
+    iRoll=0.0;
+    last_errorRoll = 0;
+    last_derivative = 0;
+    uRoll = 0;
     while (1) {
 
     	t = micros();
-    	t_delta = t - t_prev;
+    	dt = t - t_prev;
 
     	// main loop (50 Hz)
-    	if(t_delta > 20000) {
+    	if(dt > 20000) {
     		t_prev = t;
 
     		rc.update();  // update RC commands
     		ahrs.update();
 
-    		desiredRoll = 50*2*(rc.get_channel( CH_ROLL )-0.5);
-    		errorRoll = desiredRoll - ahrs.get_roll();
-    		KpRoll = rc.get_channel( CH_AUX1 )*-0.1;
+    		KpRoll = 0.0005;//rc.get_channel(CH_AUX1)*0.001;
+    		KiRoll = 0;//rc.get_channel(CH_AUX2)*0.001;
+    		KdRoll = rc.get_channel(CH_AUX3)*-0.00005;
 
-    		if(rc.get_channel(CH_AUX4) < 0.5 )
-    		{
-				m1 = rc.get_channel( CH_THROTTLE ) + (-1)*KpRoll*errorRoll;
-				m2 = rc.get_channel( CH_THROTTLE ) + (+1)*KpRoll*errorRoll;
-				m3 = 0.0;
-    		} else {
-    			m1 = 0.0;
-    			m2 = 0.0;
-    			m3 = 0.0;
+//    		uRoll = 50*2*(rc.get_channel(CH_ROLL)-0.5);
+    		uRoll += 2*(rc.get_channel(CH_ROLL)-0.5);
+    		errorRoll = uRoll - ahrs.get_roll();
+
+    		if ((KdRoll != 0) && (dt != 0)) {
+    			derivative = (errorRoll - last_errorRoll)*1000000/(float)dt;
+
+    			// discrete low pass filter, cuts out the
+    			// high frequency noise that can drive the controller crazy
+    			derivative = last_derivative +
+    			        (dt / ( filter + dt)) * (derivative - last_derivative);
+
+    			// update state
+    			last_errorRoll 	= errorRoll;
+    			last_derivative = derivative;
+
+    			// add in derivative component
     		}
 
-    		set_rotor_throttle( 1, m1 );
-			set_rotor_throttle( 2, m2 );
-			set_rotor_throttle( 3, m2 );
+    		pRoll  =  errorRoll * KpRoll;
+    		iRoll += (errorRoll * KiRoll* dt)/1000000;
+    		dRoll  = KdRoll * derivative;
+
+			#define MAX_I_ROLL 0.010
+    		if(iRoll >  MAX_I_ROLL) iRoll =  MAX_I_ROLL;
+    		if(iRoll < -MAX_I_ROLL) iRoll = -MAX_I_ROLL;
+
+			#define MIN_THROTTLE 0.12
+    		if(rc.get_channel(CH_THROTTLE) < MIN_THROTTLE && rc.get_channel(CH_AUX4) > 0.5)
+    		{
+    			uRoll = 0.0; // reset desired pitch when throttle falls
+    			iRoll = 0;
+    		}
+
+			m1 = rc.get_channel(CH_THROTTLE) +      (pRoll + iRoll + dRoll);
+			m2 = rc.get_channel(CH_THROTTLE) + (-1)*(pRoll + iRoll + dRoll);
+			m3 = 0.0;
+
+			if(m1 > 0.7) m1 = 0.7;
+			if(m2 > 0.7) m2 = 0.7;
+
+    		if(rc.get_channel(CH_AUX4) > 0.5 && rc.status() == SUCCESS)
+			{
+				set_rotor_throttle(1, m1);
+				set_rotor_throttle(2, m2);
+				set_rotor_throttle(3, m3);
+			} else {
+				set_rotor_throttle(1,0);
+				set_rotor_throttle(2,0);
+				set_rotor_throttle(3,0);
+			}
 
 			// 10Hz loop
 			if(tick50hz %  5 == 0)
@@ -113,7 +174,7 @@ int main(void) {
 			if(tick50hz % 5 == 0) // 10 hz
 			{
 				// cpu utilization based on the 2000 microseconds (50 Hz) loop
-				cpu_util = (micros()-t)*100/t_delta;
+				cpu_util = (micros()-t)*100/dt;
 
 				/*
 				 * Safe Print
@@ -132,16 +193,21 @@ int main(void) {
 				{
 					printkv("rc:", ! rc.status());
 					printkv("imu:", ahrs.get_status());
-					printkv("aux1:", rc.get_channel(CH_AUX1));
-					printkv("kp:", KpRoll);
-					printkv("dRoll:", desiredRoll);
+//					printkv("aux1:", rc.get_channel(CH_AUX1));
+					printkv("p:", (float)(pRoll*100.0));
+					printkv("i:", (float)(iRoll*1000.0));
 					printkv("m1:", m1);
 					printkv("m2:", m2);
+					printkv("kp:", KpRoll*1000);
+					printkv("ki:", KiRoll*1000);
+					printkv("kd:", KdRoll*100000);
 
 					printkv("thr:", rc.get_channel( CH_THROTTLE));
-					printkv("roll:", ahrs.get_roll());
-					printkv("pitch:", ahrs.get_pitch());
-					printkv("yaw:", ahrs.get_yaw());
+					printkv("u:", uRoll);
+					printkv("y:", ahrs.get_roll());
+					printkv("e:", errorRoll);
+//					printkv("pitch:", ahrs.get_pitch());
+//					printkv("yaw:", ahrs.get_yaw());
 
 					// cpu utilization after printing data
 //					printkv("  util:", cpu_util);
