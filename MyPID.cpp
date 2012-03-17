@@ -58,6 +58,8 @@ float MyPID::get_gain(char k) {
 		case 'd':
 		case 'D':
 			return _kd;
+		default:
+			return 0;
 		}
 }
 
@@ -74,6 +76,8 @@ float MyPID::get_term(char k) {
 		case 'd':
 		case 'D':
 			return _d;
+		default:
+			return 0;
 		}
 }
 
@@ -84,7 +88,7 @@ float MyPID::get_error() {
 float MyPID::go(float desired, float actual, uint32 dt) {
 
 	float last_error;
-	float derivative, last_derivative;
+	float last_derivative;
 
 	/// Low pass filter cut frequency for derivative calculation.
 	///
@@ -96,26 +100,23 @@ float MyPID::go(float desired, float actual, uint32 dt) {
 	// f_cut = 25 Hz -> _filter =  6.3662e-3
 	// f_cut = 30 Hz -> _filter =  5.3052e-3
 
+	last_error = _error;
+	last_derivative = _derivative;
 	_error = desired - actual;
 
 	if ((_kd != 0) && (dt != 0)) {
-		derivative = (_error - last_error)*1000000/(float)dt;
+		_derivative = (_error - last_error)*1000000/(float)dt;
 
 		// discrete low pass filter, cuts out the
 		// high frequency noise that can drive the controller crazy
-		derivative = last_derivative +
-		        (dt / ( filter + dt)) * (derivative - last_derivative);
+		_derivative = last_derivative +
+		        (dt / ( filter + dt)) * (_derivative - last_derivative);
 
-		// update state
-		last_error 	= _error;
-		last_derivative = derivative;
-
-		// add in derivative component
-	}
+		}
 
 	_p  =      _error * _kp;
 	_i += (    _error * _ki* dt)/1000000;
-	_d  =  derivative * _kd;
+	_d  = _derivative * _kd;
 
 	#define MAX_I 0.010
 	if(_i >  MAX_I) _i =  MAX_I;

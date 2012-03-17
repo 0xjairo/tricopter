@@ -24,6 +24,7 @@ public:
 
 private:
 	float _error;
+	float _derivative;
 	float _p, _i, _d;
 	float _kp, _ki, _kd;
 
