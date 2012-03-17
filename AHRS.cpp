@@ -29,7 +29,7 @@ void AHRS::update() {
 	if(_status == GPS_IMU)
 	{
 		_roll = temp_roll;
-		_pitch = temp_pitch;
+		_pitch = -1*temp_pitch;
 		_yaw = temp_yaw;
 	}
 
