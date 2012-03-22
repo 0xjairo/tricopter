@@ -11,35 +11,47 @@
 
 HardwareTimer timer2(2);
 
-void yaw_servo_init()
-{
+YawServo::YawServo() {
+	_center = 0;
+	_offset = 0;
+	_duty = 0;
+	_offset_min = 0;
+	_offset_max = 0;
+}
+
+
+void YawServo::init(float center, float offset_min, float offset_max) {
 	timer2.setMode(TIMER_CH4, TIMER_PWM);
 	timer2.setPrescaleFactor(SERVO_PPM_TIMER_PRESCALE_FACTOR);
+	_center = center;
+	_offset_min = offset_min;
+	_offset_max = offset_max;
 
-	set_servo_angle(0.0);
-
+	set_offset(0.0);
 }
 
-
-float set_servo_angle(float angle)
-{
-    int duty;
+void YawServo::set_offset(float offset) {
+	int duty;
 
     // bound angle
-    if(angle > YAW_SERVO_ANGLE_MAX)
-    	angle = YAW_SERVO_ANGLE_MAX;
+    if(offset > _offset_max)
+    	offset = _offset_max;
 
-    if(angle < YAW_SERVO_ANGLE_MIN)
-    	angle = YAW_SERVO_ANGLE_MIN;
+    if(offset < _offset_min)
+    	offset = _offset_min;
 
-    duty = SERVO_MIN + (int)(angle * SERVO_ANGLE_TO_DUTY);
-    if(duty > SERVO_MAX) duty = SERVO_MAX;
-    pwmWrite(YAW_SERVO_PIN, duty);
-
-    return angle;
+    _offset = offset;
+    _duty = SERVO_MIN + (int)( (_center + _offset) * SERVO_ANGLE_TO_DUTY);
+    if(_duty > SERVO_MAX) _duty = SERVO_MAX;
+    if(_duty < SERVO_MIN) _duty = SERVO_MIN;
+    pwmWrite(YAW_SERVO_PIN, _duty);
 }
 
-void yaw_manual_control()
+float YawServo::get_offset() {
+	return _offset;
+}
+
+void YawServo::manual_control()
 {
 	SerialUSB.println("Press \'j\' to lower speed.");
 	SerialUSB.println("Press \'k\' to increase speed.");
@@ -48,32 +60,31 @@ void yaw_manual_control()
 	SerialUSB.println();
 
 	uint8 input;
-	float angle = 0;
 	while (1) {
 
 		input = SerialUSB.read();
 		if (input == 'j')
 		{
-			angle -= 1;
+			_offset -= 1;
 		}
 		else if(input == 'k')
 		{
-			angle += 1;
+			_offset += 1;
 		}
 		else if(input == 'z')
 		{
-			angle = 0;
+			_offset = 0;
 
 		}else{
 			break;
 		}
 
-
-		SerialUSB.println(set_servo_angle(angle));
+		set_offset(_offset);
+		SerialUSB.println(get_offset());
 		delay(20);
 	}
 
-	set_servo_angle(0.0);
+	set_offset(0.0);
 
 
 }

@@ -8,9 +8,20 @@
 #ifndef YAW_SERVO_H_
 #define YAW_SERVO_H_
 
-void yaw_servo_init();
-float set_servo_angle(float angle);
-void yaw_manual_control();
+class YawServo {
+public:
+	YawServo();
+	void init(float center, float offset_min, float offset_max);
+	void set_offset(float offset);
+	float get_offset();
+	void manual_control();
+private:
+	float _center;
+	float _offset;
+	float _offset_min;
+	float _offset_max;
+	int _duty;
+};
 
 
 // Servo constants
@@ -19,7 +30,7 @@ void yaw_manual_control();
 #define PPM_CNTS_TO_DEG 0.09
 #define SERVO_ANGLE_TO_DUTY 37.44444
 
-#define YAW_SERVO_ANGLE_MAX 26
+#define YAW_SERVO_ANGLE_MAX 90
 #define YAW_SERVO_ANGLE_MIN 0
 
 

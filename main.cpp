@@ -37,9 +37,6 @@ void setup() {
     // init motor controllers
     esc_init();
 
-    // yaw servo init
-    yaw_servo_init();
-
     // initialize usb
     SerialUSB.begin();
 //    while(!isConnected()); //wait till console attaches.
@@ -58,19 +55,25 @@ int main(void) {
 	uint32 t_prev, dt;
 	uint32 cpu_util, cpu_util2;
 	uint32 tick50hz=0;
-	float uRoll;
+	float uRoll, uYaw, uThrottle;
 	float KpRoll, KiRoll, KdRoll;
 	float m1, m2, m3;
-	float pidRoll;
+	float pidRoll, pidYaw;
+	float servoAngle;
 
 	RC rc;
 	AHRS ahrs;
-	MyPID rollCtrl;
+	MyPID rollCtrl, yawCtrl;
+	YawServo yawServo;
 
     // init
     setup();
     ahrs.init();
     rc.init();
+	#define YAW_CENTER 25.0
+	#define YAW_OFFSET_MIN 0.0
+	#define YAW_OFFSET_MAX 30.0
+    yawServo.init(YAW_CENTER, YAW_OFFSET_MIN, YAW_OFFSET_MAX);
 
     toggleLED();
 
@@ -97,38 +100,53 @@ int main(void) {
     		KpRoll = rc.get_channel(CH_AUX1)*0.001; //0.0005;//
     		KiRoll = 0;//rc.get_channel(CH_AUX2)*0.001;
     		KdRoll =-0.000038; //rc.get_channel(CH_AUX3)*-0.00005;
+
     		rollCtrl.set_gains(KpRoll, KiRoll, KdRoll);
+    		yawCtrl.set_gains(1.0,0,0);
 
 			#define MAX_ROLL 50
-			uRoll = 50*2*(rc.get_channel(CH_ROLL)-0.5);
+    		if(rc.status() == SUCCESS) {
+				uRoll = 100*(rc.get_channel(CH_ROLL)-0.5);
+				uYaw += 1.0*(rc.get_channel(CH_YAW) -0.5);
+    		}else{
+    			uRoll = 0.0;
+    			//uYaw = 0;
+    		}
 			if(uRoll >  MAX_ROLL) uRoll= MAX_ROLL;
 			if(uRoll < -MAX_ROLL) uRoll=-MAX_ROLL;
 //    		uRoll += 2*(rc.get_channel(CH_ROLL)-0.5);
 
-			#define MIN_THROTTLE 0.12
+			#define MIN_THROTTLE 0.08
 			if(rc.get_channel(CH_THROTTLE) < MIN_THROTTLE && rc.get_channel(CH_AUX4) > 0.5)
 			{
 				uRoll = 0.0; // reset desired pitch when throttle falls
 			}
 
-			pidRoll = rollCtrl.go(uRoll, ahrs.get_roll(), dt);
+			pidRoll     = rollCtrl.go(uRoll, ahrs.get_roll(), dt);
+			servoAngle  =  yawCtrl.go(uYaw,  ahrs.get_yaw(),  dt);
+
+			uThrottle = rc.get_channel(CH_THROTTLE);
+			#define MAX_THROTTLE 0.8
+			if(uThrottle > MAX_THROTTLE)
+				uThrottle = MAX_THROTTLE;
 
 			m1 = rc.get_channel(CH_THROTTLE) +      (pidRoll);
 			m2 = rc.get_channel(CH_THROTTLE) + (-1)*(pidRoll);
 			m3 = 0.0;
-
-			if(m1 > 0.7) m1 = 0.7;
-			if(m2 > 0.7) m2 = 0.7;
 
     		if(rc.get_channel(CH_AUX4) > 0.5 && rc.status() == SUCCESS)
 			{
 				set_rotor_throttle(1, m1);
 				set_rotor_throttle(2, m2);
 				set_rotor_throttle(3, m3);
+				yawServo.set_offset(servoAngle);
+
 			} else {
 				set_rotor_throttle(1,0);
 				set_rotor_throttle(2,0);
 				set_rotor_throttle(3,0);
+				yawServo.set_offset(0.00);
+
 			}
 
 			// 10Hz loop
@@ -169,9 +187,11 @@ int main(void) {
 					printkv("kp:", 		rollCtrl.get_gain('p')*1000);
 					printkv("ki:", 		rollCtrl.get_gain('i')*1000);
 					printkv("kd:", 		rollCtrl.get_gain('d')*100000);
+					printkv("servo:", 	servoAngle);
 
 					printkv("thr:", 	rc.get_channel( CH_THROTTLE));
 					printkv("uRoll:", 	uRoll);
+					printkv("uYaw:", 	uYaw);
 					printkv("e:", 		rollCtrl.get_error());
 					printkv("yRoll:", 	ahrs.get_roll());
 					printkv("yPitch:", 	ahrs.get_pitch());
