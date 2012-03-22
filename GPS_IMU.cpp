@@ -41,6 +41,7 @@ byte gps_messages_received = 0;
 int imu_messages_received = 0;
 byte imu_payload_error_count = 0;
 byte imu_checksum_error_count = 0;
+byte imu_state_error_count = 0;
 long perf_mon_timer = 0;
 
 byte IMU_buffer[24];
@@ -123,6 +124,7 @@ void decode_gps(void)
 			case 0:	
 				if(data == 0x44) 
 					IMU_step++; //First byte of data packet header is correct, so jump to the next step
+					imu_state_error_count=0;
 					//else
 					//SerialUSB.println("IMU parser Case 0 fail");	 // This line for debugging only
 				break; 
@@ -133,6 +135,7 @@ void decode_gps(void)
 				else {	
 					// This line for debugging only
 					//SerialUSB.println("IMU parser Case 1 fail");
+					imu_state_error_count++;
 					IMU_step=0;		 //Second byte is not correct so restart to step zero and try again.	
 				}	 
 				break;
@@ -142,6 +145,7 @@ void decode_gps(void)
 					 IMU_step++;	//Third byte of data packet header is correct
 				else {
 					//SerialUSB.println("IMU parser Case 2 fail");	 // This line for debugging only
+					imu_state_error_count++;
 					IMU_step=0;		 //Third byte is not correct so restart to step zero and try again.
 				}		 
 				break;
@@ -151,6 +155,7 @@ void decode_gps(void)
 					 IMU_step++;	//Fourth byte of data packet header is correct, Header complete
 				else {
 					//SerialUSB.println("IMU parser Case 3 fail");	 // This line for debugging only
+					imu_state_error_count++;
 					IMU_step=0;		 //Fourth byte is not correct so restart to step zero and try again.
 				}		 
 				break;
@@ -165,6 +170,7 @@ void decode_gps(void)
 					payload_counter=0;
 					ck_a=0;
 					ck_b=0;
+					imu_state_error_count++;
 					imu_payload_error_count++;
 				} 
 				break;
@@ -312,12 +318,17 @@ void print_imu_data()
 	SerialUSB.print(GPS_update);
 }
 
-void get_imu_data(float *roll, float *pitch, float *yaw, byte *status)
+void get_imu_data(float *roll, float *pitch, float *yaw, byte *status, byte *payload_error_count, byte *checksum_error_count, byte *state_error_count)
 {
 	*roll = (float)(roll_sensor)/100;
 	*pitch = (float)(pitch_sensor)/100;
 	*yaw = (float)(ground_course)/100;
 	*status = GPS_update;
+	*payload_error_count = imu_payload_error_count;
+	*checksum_error_count = imu_checksum_error_count;
+	*state_error_count = imu_state_error_count;
+
+
 }
 
 
