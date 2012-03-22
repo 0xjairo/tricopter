@@ -14,7 +14,6 @@ AHRS::AHRS() {
 	_roll = 0.0;
 	_pitch = 0.0;
 	_yaw = 0.0;
-
 }
 
 void AHRS::init() {
@@ -25,14 +24,24 @@ void AHRS::update() {
 	float temp_roll, temp_pitch, temp_yaw;
 
 	decode_gps(); // decode IMU data
-	get_imu_data(&temp_roll, &temp_pitch, &temp_yaw, &_status);
+	get_imu_data(&temp_roll, &temp_pitch, &temp_yaw, &_status, &_payload_error_count, &_checksum_error_count, &_state_error_count);
 	if(_status == GPS_IMU)
 	{
 		_roll = temp_roll;
 		_pitch = -1*temp_pitch;
 		_yaw = temp_yaw;
+//	} else {
+//		SerialUSB.println("ERROR: IMU");
 	}
 
+//	if(_payload_error_count != 0 || _checksum_error_count != 0 || _state_error_count != 0) {
+//		SerialUSB.print("payload:");
+//		SerialUSB.print(_payload_error_count);
+//		SerialUSB.print(" checksum:");
+//		SerialUSB.print(_checksum_error_count);
+//		SerialUSB.print(" state:");
+//		SerialUSB.println(_state_error_count);
+//	}
 }
 
 byte AHRS::get_status() {

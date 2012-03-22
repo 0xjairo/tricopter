@@ -26,6 +26,10 @@ private:
 	float _roll;
 	float _pitch;
 	float _yaw;
+	byte _payload_error_count;
+	byte _checksum_error_count;
+	byte _state_error_count;
+
 };
 
 #endif /* AHRS_H_ */
