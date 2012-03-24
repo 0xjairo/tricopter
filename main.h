@@ -12,6 +12,20 @@
  *
  */
 
+#define MAX_ROLL 50
+#define MAX_PITCH 50
+
+
+#define YAW_CENTER 25.0
+#define YAW_OFFSET_MIN -10.0
+#define YAW_OFFSET_MAX 10
+//#define YAW_OFFSET_MAX 30.0
+
+#define MIN_THROTTLE 0.08
+#define MAX_THROTTLE 0.8
+
+
+
 //#define COPTER_DEBUG
 
 /* Timer 1, Ch 1 */

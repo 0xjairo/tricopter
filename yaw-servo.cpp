@@ -31,19 +31,13 @@ void YawServo::init(float center, float offset_min, float offset_max) {
 }
 
 void YawServo::set_offset(float offset) {
-	int duty;
 
+	offset *= -1;
     // bound angle
-    if(offset > _offset_max)
-    	offset = _offset_max;
+	_offset = constrain(offset, _offset_min, _offset_max);
 
-    if(offset < _offset_min)
-    	offset = _offset_min;
-
-    _offset = offset;
     _duty = SERVO_MIN + (int)( (_center + _offset) * SERVO_ANGLE_TO_DUTY);
-    if(_duty > SERVO_MAX) _duty = SERVO_MAX;
-    if(_duty < SERVO_MIN) _duty = SERVO_MIN;
+    _duty = constrain(_duty, SERVO_MIN, SERVO_MAX);
     pwmWrite(YAW_SERVO_PIN, _duty);
 }
 
