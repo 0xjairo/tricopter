@@ -54,7 +54,7 @@ int main(void) {
     uint32 cpu_util, cpu_util2;
     uint32 tick50hz = 0;
 
-    bool throttle_enable;
+    bool fly_ENA;
 
     float uRoll, uPitch, uYaw, uThrottle;
     float m1, m2, m3;
@@ -87,7 +87,7 @@ int main(void) {
     pitchCtrl.set_gains( 0.0005, 0.00, 0.00000);
     yawCtrl.set_gains(1.0, 0, 0);
 
-    throttle_enable = 0;
+    fly_ENA = 0;
 
     while (1) {
 
@@ -101,7 +101,7 @@ int main(void) {
             rc.update(); // update RC commands
             ahrs.update();
 
-            throttle_enable = (rc.get_channel(CH_AUX4) > 0.5 && rc.status() == SUCCESS);
+            fly_ENA = (rc.get_channel(CH_AUX4) > 0.5 && rc.status() == SUCCESS);
 
             if (rc.status() == SUCCESS) {
                 uThrottle = rc.get_channel(CH_THROTTLE);
@@ -134,7 +134,7 @@ int main(void) {
             m3 = uThrottle + ( 0) * (pidRoll) + (+4.0/3.0) * pidPitch;
 
             yawServo.set_offset(servoAngle);
-            if (throttle_enable) {
+            if (fly_ENA) {
                 set_rotor_throttle(1, m1);
                 set_rotor_throttle(2, m2);
                 set_rotor_throttle(3, m3);
@@ -147,7 +147,7 @@ int main(void) {
 
             // 10Hz loop
             if (tick50hz % 5 == 0) {
-                if(throttle_enable)
+                if(fly_ENA)
                     toggleLED();
                 else
                     digitalWrite(BOARD_LED_PIN, 0);
