@@ -3,3 +3,4 @@ screenlog.0
 libmaple/*
 build/
 Parameters.h
+Serial_20*.txt
