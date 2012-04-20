@@ -61,6 +61,8 @@ int main(void) {
     float pidRoll, pidPitch, pidYaw;
     float servoAngle;
 
+    paramTable p;
+
     RC rc;
     AHRS ahrs;
     MyPID rollCtrl, pitchCtrl, yawCtrl;
@@ -83,9 +85,23 @@ int main(void) {
     t_prev = 0;
     uRoll = 0;
 
-    rollCtrl.set_gains(  0.0004, 0.00, 0.00000);
-    pitchCtrl.set_gains( 0.0005, 0.00, 0.00000);
-    yawCtrl.set_gains(1.0, 0, 0);
+    p.roll.Kp = 0.00040;
+    p.roll.Ki = 0.00000;
+    p.roll.Kd = 0.00000;
+
+    p.pitch.Kp = 0.00050;
+    p.pitch.Ki = 0.00000;
+    p.pitch.Kd = 0.00000;
+
+    p.yaw.Kp = 0.01000;
+    p.yaw.Ki = 0.00000;
+    p.yaw.Kd = 0.00000;
+
+    update_gains(&p, &rollCtrl, &pitchCtrl, &yawCtrl);
+
+//    rollCtrl.set_gains(  0.00040, 0.00, 0.00000);
+//    pitchCtrl.set_gains( 0.00050, 0.00, 0.00000);
+//    yawCtrl.set_gains(1.0, 0, 0);
 
     fly_ENA = 0;
 
@@ -176,30 +192,35 @@ int main(void) {
                 if (isConnected()) {
                     printkv("rc:", !rc.status());
                     printkv("imu:", ahrs.get_status());
-                    //					printkv("aux1:", 	rc.get_channel(CH_AUX1));
-                    printkv("p:", (float) (rollCtrl.get_term('p') * 100.0));
-                    printkv("i:", (float) (rollCtrl.get_term('i') * 1000.0));
+//                    //					printkv("aux1:", 	rc.get_channel(CH_AUX1));
+//                    printkv("p:", (float) (rollCtrl.get_term('p') * 100.0));
+//                    printkv("i:", (float) (rollCtrl.get_term('i') * 1000.0));
                     printkv("m1:", m1);
                     printkv("m2:", m2);
-                    printkv("kp:", rollCtrl.get_gain('p') * 1000);
-                    printkv("ki:", rollCtrl.get_gain('i') * 1000);
-                    printkv("kd:", rollCtrl.get_gain('d') * 100000);
                     printkv("servo:", servoAngle);
-
-                    printkv("thr:", rc.get_channel(CH_THROTTLE));
+//
+//                    printkv("thr:", rc.get_channel(CH_THROTTLE));
                     printkv("uRoll:", uRoll);
                     printkv("uYaw:", uYaw);
-                    printkv("e:", rollCtrl.get_error());
+//                    printkv("e:", rollCtrl.get_error());
                     printkv("yRoll:", ahrs.get_roll());
                     printkv("yPitch:", ahrs.get_pitch());
                     printkv("yYaw:", ahrs.get_yaw());
-
-                    // cpu utilization after printing data
-                    //					printkv("  util:", cpu_util);
-                    //					cpu_util2 = (micros()-t)*100/t_delta;
-                    //					printkv("util2:",cpu_util2);
+//
+//                    // cpu utilization after printing data
+//                    //					printkv("  util:", cpu_util);
+//                    //					cpu_util2 = (micros()-t)*100/t_delta;
+//                    //					printkv("util2:",cpu_util2);
+//
 
                     SerialUSB.println("");
+
+                    if(interactive_config(&p)){
+                        update_gains(&p, &rollCtrl, &pitchCtrl, &yawCtrl);
+
+                    }
+
+
                 }
 
             }
@@ -208,4 +229,139 @@ int main(void) {
         }
     }
     return 0;
+}
+
+
+
+int interactive_config(paramTable *p) {
+    static int inputVal_1e5; // input value 1e5 times larger (need to divide by 1e5)
+    float inputVal;
+    static int state = 0;
+    static pidParams *p_p; // pointer, temp pidParams
+    static float *p_v; // pointer, temp param value
+
+    while(SerialUSB.available())
+    {
+        uint8 input = SerialUSB.read();
+        switch(state) {
+        case 0:
+            if(input == 't') { // tune PID
+                state++;
+            }
+            break;
+        case 1: // select axis
+            inputVal_1e5 = 0;
+            switch(input) {
+            case 'r':  // roll
+                p_p = &(p->roll);
+
+                state++;
+                break;
+            case 'p': // pitch
+                p_p = &(p->pitch);
+                state++;
+                break;
+            case 'y': // yaw
+                p_p = &(p->yaw);
+                state++;
+                break;
+            default: // reset state
+                state=0;
+                break;
+            }
+            break;
+        case 2:
+            switch(input) {
+            case 'p': // Kp
+                p_v = &(p_p->Kp);
+                state++;
+                break;
+            case 'i': // Ki
+                p_v = &(p_p->Ki);
+                state++;
+                break;
+            case 'd': // Kd
+                p_v = &(p_p->Kd);
+                state++;
+                break;
+            default:
+                state=0;
+                break;
+            }
+            break;
+        case 3:
+            // check that the next input is a number
+            if(input > 0x2F && input < 0x3A)
+            {
+                inputVal_1e5 += (input-0x30);
+                inputVal_1e5 *= 10;
+                printkv("inputVal_1e5:", inputVal_1e5);
+            }else if(input == '\r') {
+                inputVal_1e5 /= 10;
+                inputVal = ((float)inputVal_1e5)/100000.0;
+//                SerialUSB.print("inputVal:");
+//                SerialUSB.print(inputVal, 8);
+//
+//                SerialUSB.print(" p->roll.Kp=");
+//                SerialUSB.print(p->roll.Kp, 8);
+//                SerialUSB.print(" *p_v=");
+//                SerialUSB.print(*(float *)p_v, 8);
+
+                *(float *)(p_v) =inputVal;
+
+                // done
+                state=0;
+                printkv("ist:", state);
+
+                return true;
+
+
+            }else{
+                printkv("ERROR, input:", input);
+                state=0;
+            }
+            break;
+
+        default:
+            state=0;
+            break;
+        }
+        // interactive session state
+        printkv("ist:", state);
+
+    }
+
+    return false;
+
+}
+
+void update_gains(paramTable *p, class MyPID *roll, class MyPID *pitch, class MyPID *yaw)
+{
+    pidParams *p_axis;
+    p_axis = &(p->roll);
+    roll->set_gains(p_axis->Kp, p_axis->Ki, p_axis->Kd);
+
+    printkv("rkp:", roll->get_gain('p') );
+    printkv("rki:", roll->get_gain('i') );
+    printkv("rkd:", roll->get_gain('d') );
+
+
+    p_axis = &(p->pitch);
+    pitch->set_gains(p_axis->Kp, p_axis->Ki, p_axis->Kd);
+
+    printkv("pkp:", pitch->get_gain('p') );
+    printkv("pki:", pitch->get_gain('i') );
+    printkv("pkd:", pitch->get_gain('d') );
+
+
+    p_axis = &(p->yaw);
+    yaw->set_gains(p_axis->Kp, p_axis->Ki, p_axis->Kd);
+
+    printkv("ykp:", yaw->get_gain('p') );
+    printkv("yki:", yaw->get_gain('i') );
+    printkv("ykd:", yaw->get_gain('d') );
+
+    SerialUSB.println("");
+
+
 }
