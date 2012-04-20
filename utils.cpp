@@ -79,7 +79,7 @@ void delimiter() {
 
 void printkv(const char *k, float v) {
 	SerialUSB.print(k);
-	SerialUSB.print(v);
+	SerialUSB.print(v,6);
 	delimiter();
 }
 
@@ -93,4 +93,10 @@ void printkv(const char *k, unsigned int v) {
 	SerialUSB.print(k);
 	SerialUSB.print(v);
 	delimiter();
+}
+
+void printkv(const char *k, char v) {
+    SerialUSB.print(k);
+    SerialUSB.print(v);
+    delimiter();
 }

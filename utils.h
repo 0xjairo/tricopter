@@ -1,11 +1,13 @@
 #include "wirish.h"
 
+#ifndef _UTILS_H_
+#define _UTILS_H_
+
 // Comment out to disable USB printouts
 #define USB_VERBOSE
 
 // Default USART baud rate
 #define BAUD     9600
-
 
 void cmd_print_help(void);
 void cmd_board_info(void);
@@ -20,3 +22,5 @@ void delimiter();
 void printkv(const char*k, float v);
 void printkv(const char*k, int v);
 void printkv(const char*k, unsigned int v);
+
+#endif
