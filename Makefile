@@ -34,7 +34,9 @@ SRCS=	main.cpp \
 		GPS_IMU.cpp \
 		RC.cpp \
 		AHRS.cpp \
-		MyPID.cpp
+		MyPID.cpp \
+		parameters.cpp \
+		telemetry.cpp
 
 INCLUDES=${SRCS:.cpp=.h}  
 OBJS=$(addprefix $(APP_OBJ_PATH)/, $(SRCS:.cpp=.o))
