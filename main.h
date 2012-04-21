@@ -69,20 +69,5 @@
 /* max: 2ms =  6545.45 */
 #define PPM_MAX 6545
 
-typedef struct pidParams {
-    float Kp;
-    float Ki;
-    float Kd;
-} pidParams;
 
-typedef struct paramTable {
-    pidParams roll;
-    pidParams pitch;
-    pidParams yaw;
-} paramTable;
-
-
-
-int interactive_config(paramTable *p);
-void update_gains(paramTable *p, class MyPID *roll, class MyPID *pitch, class MyPID *yaw);
 #endif
