@@ -55,7 +55,7 @@ int main(void) {
     uint32 t;
     uint32 t_prev, dt;
     uint32 cpu_util, cpu_util2;
-    uint32 tick50hz = 0;
+    uint32 tickMainLoop = 0;
 
     bool fly_ENA;
 
@@ -116,34 +116,41 @@ int main(void) {
         t = micros();
         dt = t - t_prev;
 
-        // main loop (50 Hz)
-        if (dt > 20000) {
+        // main loop (400 Hz)
+        if (dt > 2500) {
             t_prev = t;
 
-            rc.update(); // update RC commands
-            ahrs.update();
 
-            fly_ENA = (rc.get_channel(CH_AUX4) > 0.5 && rc.status() == SUCCESS);
+            // 50Hz loop
+            if (tickMainLoop % (MAIN_LOOP_F_HZ/50) == 0) {
 
-            if (rc.status() == SUCCESS) {
-                uThrottle = rc.get_channel(CH_THROTTLE);
-                uRoll = 100 * (rc.get_channel(CH_ROLL) - 0.5);
-                uPitch = 100 * (rc.get_channel(CH_ROLL) - 0.5);
-                uYaw = 20.0 * (rc.get_channel(CH_YAW) - 0.5);
-            } else {
-                uRoll = 0.0;
-                uPitch = 0.0;
-                //uYaw = 0;
+                rc.update(); // update RC commands
+                ahrs.update();
+
+                fly_ENA = (rc.get_channel(CH_AUX4) > 0.5 && rc.status() == SUCCESS);
+
+                if (rc.status() == SUCCESS) {
+                    uThrottle = rc.get_channel(CH_THROTTLE);
+                    uRoll = 100 * (rc.get_channel(CH_ROLL) - 0.5);
+                    uPitch = 100 * (rc.get_channel(CH_ROLL) - 0.5);
+                    uYaw = 20.0 * (rc.get_channel(CH_YAW) - 0.5);
+                } else {
+                    uRoll = 0.0;
+                    uPitch = 0.0;
+                    //uYaw = 0;
+                }
+
+                uThrottle = constrain(uThrottle, 0, MAX_THROTTLE);
+                uRoll     = constrain(uRoll, -MAX_ROLL, MAX_ROLL);
+                uPitch    = constrain(uPitch, -MAX_PITCH, MAX_PITCH);
+                //uYaw     = constrain...
+
+                if (uThrottle < MIN_THROTTLE  && rc.get_channel(CH_AUX4) > 0.5) {
+                    uRoll = 0.0; // reset desired pitch when throttle falls
+                }
             }
 
-            uThrottle = constrain(uThrottle, 0, MAX_THROTTLE);
-            uRoll     = constrain(uRoll, -MAX_ROLL, MAX_ROLL);
-            uPitch    = constrain(uPitch, -MAX_PITCH, MAX_PITCH);
-            //uYaw     = constrain...
 
-            if (uThrottle < MIN_THROTTLE  && rc.get_channel(CH_AUX4) > 0.5) {
-                uRoll = 0.0; // reset desired pitch when throttle falls
-            }
 
             pidRoll    = rollCtrl.go(uRoll, ahrs.get_roll(), dt);
             pidPitch   = pitchCtrl.go(uPitch, ahrs.get_pitch(), dt);
@@ -167,8 +174,11 @@ int main(void) {
                 set_rotor_throttle(3, 0);
             }
 
+
+
+
             // 10Hz loop
-            if (tick50hz % 5 == 0) {
+            if (tickMainLoop % (MAIN_LOOP_F_HZ/10) == 0) {
                 if(fly_ENA)
                     toggleLED();
                 else
@@ -176,8 +186,8 @@ int main(void) {
             }
 
             // 2Hz loop
-            // if(tick50hz % 25 == 0)
-            if (tick50hz % 5 == 0) // 10 hz
+            // if(tickMainLoop % (MAIN_LOOP_F_HZ/2) == 0)
+            if (tickMainLoop % (MAIN_LOOP_F_HZ/10) == 0) // 10 hz
             {
                 // cpu utilization based on the 2000 microseconds (50 Hz) loop
                 cpu_util = (micros() - t) * 100 / dt;
@@ -218,7 +228,7 @@ int main(void) {
             } // 10 Hz // 2Hz
 
             // update tick
-            tick50hz++;
+            tickMainLoop++;
 
         } // main loop (50 hz)
     }  // while()

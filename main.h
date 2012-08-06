@@ -69,5 +69,6 @@
 /* max: 2ms =  6545.45 */
 #define PPM_MAX 6545
 
+#define MAIN_LOOP_F_HZ 400
 
 #endif
