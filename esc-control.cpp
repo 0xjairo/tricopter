@@ -18,7 +18,7 @@ void esc_init()
 	timer1.setMode(TIMER_CH1, TIMER_PWM);
 	timer1.setMode(TIMER_CH2, TIMER_PWM);
 	timer1.setMode(TIMER_CH3, TIMER_PWM);
-	timer1.setPrescaleFactor(SERVO_PPM_TIMER_PRESCALE_FACTOR);
+	timer1.setPrescaleFactor(ESC_PPM_TIMER_PRESCALE_FACTOR);
 
 	// Set throttle to minimum
 	for(int i=0;i<3;i++)
