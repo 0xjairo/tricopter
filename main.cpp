@@ -91,13 +91,26 @@ int main(void) {
     t_prev = 0;
     uRoll = 0;
 
-    p.roll.Kp = 0.00040;
-    p.roll.Ki = 0.00000;
-    p.roll.Kd = 0.00000;
+//    p.roll.Kp = 0.00040;
+//    p.roll.Ki = 0.00000;
+//    p.roll.Kd = 0.00000;
+//
+//    p.pitch.Kp = 0.00050;
+//    p.pitch.Ki = 0.00000;
+//    p.pitch.Kd = 0.00000;
+//
+//    p.yaw.Kp = 0.01000;
+//    p.yaw.Ki = 0.00000;
+//    p.yaw.Kd = 0.00000;
 
-    p.pitch.Kp = 0.00050;
+
+    p.roll.Kp = 0.0040;
+    p.roll.Ki = 0.00000;
+    p.roll.Kd = 0.000235;
+
+    p.pitch.Kp = 0.0040;
     p.pitch.Ki = 0.00000;
-    p.pitch.Kd = 0.00000;
+    p.pitch.Kd = 0.000235;
 
     p.yaw.Kp = 0.01000;
     p.yaw.Ki = 0.00000;
@@ -130,9 +143,16 @@ int main(void) {
                 fly_ENA = (rc.get_channel(CH_AUX4) > 0.5 && rc.status() == SUCCESS);
 
                 if (rc.status() == SUCCESS) {
+                    // 0 to 1
                     uThrottle = rc.get_channel(CH_THROTTLE);
+
+                    // -50 to 50
                     uRoll = 100 * (rc.get_channel(CH_ROLL) - 0.5);
+
+                    // -50 to 50
                     uPitch = 100 * (rc.get_channel(CH_ROLL) - 0.5);
+
+                    // -10 to +10
                     uYaw = 20.0 * (rc.get_channel(CH_YAW) - 0.5);
                 } else {
                     uRoll = 0.0;
@@ -145,8 +165,9 @@ int main(void) {
                 uPitch    = constrain(uPitch, -MAX_PITCH, MAX_PITCH);
                 //uYaw     = constrain...
 
-                if (uThrottle < MIN_THROTTLE  && rc.get_channel(CH_AUX4) > 0.5) {
+                if (uThrottle < MIN_THROTTLE  && fly_ENA) {
                     uRoll = 0.0; // reset desired pitch when throttle falls
+                    uPitch = 0.0; // reset desired pitch when throttle falls
                 }
             }
 
