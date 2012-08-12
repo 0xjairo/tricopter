@@ -49,25 +49,46 @@
 /* 3_RX  (pin 0 on Maple Mini) */
 #define IMU_RX_PIN BOARD_USART3_RX_PIN
 
+///*
+// * The PPM signal frequency: 50 Hz.
+// * The max count in the timer's register
+// * is 65536 (16-bit register).
+// * The MCU's clock is 72 MHz.
+// * Therefore the prescale factor is:
+// * 1/(50 Hz) * (72 MHz) / (65536) = 21.97
+// */
+#define SERVO_PPM_TIMER_PRESCALE_FACTOR 22
+
+
+/* min: 1ms
+ *   (1 ms * 72 Mhz)/ (PRESCALE_FACTOR) =  24000
+ *  https://www.google.com/search?q=((1 millisecond)*(72 MHz))/3
+ */
+#define SERVO_PPM_MIN 3273
+
+/* max: 2ms =  48000 */
+#define SERVO_PPM_MAX 6545
+
 /*
- * The PPM signal frequency is 50 Hz.
+ * For the Turnigy Plush 18A, which accept
+ * a PPM signal at 400 Hz:
+ *
  * The max count in the timer's register
  * is 65536 (16-bit register).
  * The MCU's clock is 72 MHz.
  * Therefore the prescale factor is:
- * 1/(50 Hz) * (72 MHz) / (65536) = 21.97
+ * 1/(400 Hz) * (72 MHz) / (65536) = 2.75
  */
-#define SERVO_PPM_TIMER_PRESCALE_FACTOR 22
+#define ESC_PPM_TIMER_PRESCALE_FACTOR 3
 
 /* min: 1ms
- *   (1 ms * 72 Mhz)/ (PRESCALE_FACTOR)
- * = (1 ms * 72 Mhz)/ 22
- * =  3272.72 ticks
+ *   (1 ms * 72 Mhz)/ (PRESCALE_FACTOR) =  24000
+ *  https://www.google.com/search?q=((1 millisecond)*(72 MHz))/3
  */
-#define PPM_MIN 3273
+#define ESC_PPM_MIN 24000
 
-/* max: 2ms =  6545.45 */
-#define PPM_MAX 6545
+/* max: 2ms =  48000 */
+#define ESC_PPM_MAX 48000
 
 #define MAIN_LOOP_F_HZ 400
 
