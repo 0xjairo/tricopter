@@ -61,9 +61,16 @@ int main(void) {
 
     int int_tune_status = PARAM_INT_TUNE_FLAG_IDLE;
 
+    // user inputs
     float uRoll, uPitch, uYaw, uThrottle;
+
+    // motor duty cycles
     float m1, m2, m3;
+
+    // pid values
     float pidRoll, pidPitch, pidYaw;
+
+    // servo angle
     float servoAngle;
 
     paramTable p;
