@@ -21,12 +21,18 @@ YawServo::YawServo() {
 
 
 void YawServo::init(float center, float offset_min, float offset_max) {
+    // set pin mode
 	timer2.setMode(TIMER_CH4, TIMER_PWM);
+
+	// set up timer prescale
 	timer2.setPrescaleFactor(SERVO_PPM_TIMER_PRESCALE_FACTOR);
+
+	// store variables
 	_center = center;
 	_offset_min = offset_min;
 	_offset_max = offset_max;
 
+	// move servo to an offest of 0 (middle)
 	set_offset(0.0);
 }
 

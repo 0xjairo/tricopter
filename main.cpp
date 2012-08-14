@@ -81,12 +81,19 @@ int main(void) {
     MyPID rollCtrl, pitchCtrl, yawCtrl;
     YawServo yawServo;
 
-    // init
-    setup();
-    ahrs.init();
-    rc.init();
+    // init servo and set position before specifying the
+    // servo pin to avoid the servo from swinging back and forth
+    // on power on
     yawServo.init(YAW_CENTER, YAW_OFFSET_MIN, YAW_OFFSET_MAX);
 
+    // setup pin modes
+    setup();
+
+    // ahrs and RC
+    ahrs.init();
+    rc.init();
+
+    // blink it!
     toggleLED();
 
     //    while(rc.status() != SUCCESS || rc.get_channel(CH_THROTTLE) > 0.2) {
