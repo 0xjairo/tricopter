@@ -60,7 +60,7 @@ void set_rotor_throttle(int rotor, float rate)
 	// 1.50ms = 4915counts = 50% (90deg)
 	// 1.75ms = 5734counts =
 	// 2.00ms = 6800counts = 100% (180deg)
-	int duty = PPM_MIN + (float)(PPM_MAX-PPM_MIN)*rate;
+	int duty = ESC_PPM_MIN + (float)(ESC_PPM_MAX-ESC_PPM_MIN)*rate;
 
 #ifdef COPTER_DEBUG
 	SerialUSB.print("Rotor:D");
